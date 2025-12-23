@@ -170,7 +170,8 @@ variable "domain" {
     The root domain name for DNS management.
 
     This is the main domain where DNS zones and records will be created.
-    The domain must already be registered or transferred to Scaleway.
+    The domain can be registered via this module (register_domain = true)
+    or must already be registered/transferred to Scaleway.
 
     Examples: "example.com", "mycompany.io"
   EOT

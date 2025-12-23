@@ -32,6 +32,13 @@ resource "scaleway_domain_registration" "this" {
   duration_in_years = var.registration.duration_in_years
   project_id        = local.project_id
 
+  lifecycle {
+    precondition {
+      condition     = var.registration != null
+      error_message = "The 'registration' variable must be provided when 'register_domain' is true."
+    }
+  }
+
   # Owner contact - either by ID or inline definition
   owner_contact_id = var.registration.owner_contact_id
 
