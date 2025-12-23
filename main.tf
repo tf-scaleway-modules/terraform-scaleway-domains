@@ -58,8 +58,8 @@ resource "scaleway_domain_registration" "this" {
       city                        = owner_contact.value.city
       state                       = owner_contact.value.state
       country                     = owner_contact.value.country
-      vat_identification_code     = owner_contact.value.vat_identification_code
-      company_identification_code = owner_contact.value.company_identification_code
+      vat_identification_code     = owner_contact.value.vat_identification_code != null ? owner_contact.value.vat_identification_code : ""
+      company_identification_code = owner_contact.value.company_identification_code != null ? owner_contact.value.company_identification_code : ""
       whois_opt_in                = owner_contact.value.whois_opt_in
       email_alt                   = owner_contact.value.email_alt
       lang                        = owner_contact.value.lang

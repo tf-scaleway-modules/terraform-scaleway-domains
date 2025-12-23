@@ -125,6 +125,7 @@ records = [
   {
     name = "cdn"
     type = "A"
+    data = "10.0.0.1"  # Default fallback (required)
     geo_ip = {
       matches = [
         {
@@ -153,6 +154,7 @@ records = [
   {
     name = "api"
     type = "A"
+    data = "10.1.0.1"  # Default fallback (required)
     weighted = [
       { ip = "10.1.0.1", weight = 70 },  # 70% traffic
       { ip = "10.1.0.2", weight = 20 },  # 20% traffic
@@ -195,6 +197,7 @@ records = [
   {
     name = "api"
     type = "A"
+    data = "10.2.0.1"  # Default fallback (required)
     http_service = {
       ips          = ["10.2.0.1", "10.2.0.2", "10.2.0.3"]
       url          = "http://api.example.com/health"
@@ -223,7 +226,7 @@ records = [
 
 | Name | Version |
 |------|---------|
-| <a name="provider_scaleway"></a> [scaleway](#provider\_scaleway) | 2.65.1 |
+| <a name="provider_scaleway"></a> [scaleway](#provider\_scaleway) | ~> 2.64 |
 
 ## Modules
 

@@ -296,15 +296,9 @@ variable "records" {
 
   validation {
     condition = alltrue([
-      for r in var.records : (
-        r.data != null ||
-        r.geo_ip != null ||
-        r.weighted != null ||
-        r.view != null ||
-        r.http_service != null
-      )
+      for r in var.records : r.data != null
     ])
-    error_message = "Each record must have either 'data' or a dynamic DNS configuration (geo_ip, weighted, view, http_service)."
+    error_message = "The 'data' attribute is required for all records. For dynamic DNS (geo_ip, weighted, http_service), it serves as the fallback value."
   }
 
   validation {

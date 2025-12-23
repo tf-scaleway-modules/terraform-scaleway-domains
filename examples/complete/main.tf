@@ -44,7 +44,7 @@ module "dns" {
   project_name    = var.project_name
 
   # Zone configuration
-  domain      = "example.com"
+  domain      = "test.net"
   subdomain   = "staging"
   create_zone = true
 
@@ -107,6 +107,7 @@ module "dns" {
     {
       name = "cdn"
       type = "A"
+      data = "10.0.0.1" # Default fallback IP
       geo_ip = {
         matches = [
           {
@@ -135,6 +136,7 @@ module "dns" {
     {
       name = "lb"
       type = "A"
+      data = "10.1.0.1" # Default fallback IP
       weighted = [
         {
           ip     = "10.1.0.1"
@@ -158,6 +160,7 @@ module "dns" {
     {
       name = "db"
       type = "A"
+      data = "203.0.113.10" # Default public IP for external clients
       view = [
         {
           subnet = "10.0.0.0/8"  # Internal network
@@ -168,7 +171,6 @@ module "dns" {
           data   = "10.100.0.11"    # Office DB IP
         }
       ]
-      data = "203.0.113.10" # Default public IP for external clients
     },
 
     # -------------------------------------------------------------------------
@@ -178,6 +180,7 @@ module "dns" {
     {
       name = "api"
       type = "A"
+      data = "10.2.0.1" # Default fallback IP
       http_service = {
         ips          = ["10.2.0.1", "10.2.0.2", "10.2.0.3"]
         url          = "http://api.staging.example.com/health"
@@ -186,38 +189,4 @@ module "dns" {
       }
     }
   ]
-}
-
-# ==============================================================================
-# Outputs
-# ==============================================================================
-
-output "project_id" {
-  description = "The resolved project ID"
-  value       = module.dns.project_id
-}
-
-output "dns_zone" {
-  description = "The DNS zone being managed"
-  value       = module.dns.dns_zone
-}
-
-output "zone_id" {
-  description = "The DNS zone ID"
-  value       = module.dns.zone_id
-}
-
-output "zone_nameservers" {
-  description = "Nameservers for the zone"
-  value       = module.dns.zone_ns
-}
-
-output "records" {
-  description = "All created DNS records"
-  value       = module.dns.records
-}
-
-output "record_fqdns" {
-  description = "FQDNs for all records"
-  value       = module.dns.record_fqdns
 }

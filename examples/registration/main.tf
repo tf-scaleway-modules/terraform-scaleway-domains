@@ -58,12 +58,12 @@ module "my_domain" {
     owner_contact = {
       # Legal information
       legal_form = "individual"
-      firstname  = "John"
-      lastname   = "Doe"
+      firstname  = "A"
+      lastname   = "B"
 
       # Contact information
-      email        = "john.doe@example.com"
-      phone_number = "+33123456789"
+      email        = "a.b@example.com"
+      phone_number = "+33111111111"
 
       # Address
       address_line_1 = "123 Main Street"
@@ -81,7 +81,7 @@ module "my_domain" {
     {
       name = ""
       type = "A"
-      data = "93.184.216.34"
+      data = "192.168.1.100"
     },
     {
       name = "www"
