@@ -1,7 +1,7 @@
 # ╔══════════════════════════════════════════════════════════════════════════════╗
 # ║                              MODULE OUTPUTS                                  ║
 # ║                                                                              ║
-# ║  Outputs for DNS zones and records managed by this module.                   ║
+# ║  Outputs for domain registration, DNS zones, and records.                    ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
 
 # ==============================================================================
@@ -11,6 +11,15 @@
 output "project_id" {
   description = "The ID of the Scaleway project (resolved from project_name or provided directly)."
   value       = local.project_id
+}
+
+# ==============================================================================
+# Domain Registration Outputs
+# ==============================================================================
+
+output "registration_id" {
+  description = "The ID of the domain registration (null if register_domain = false)."
+  value       = var.register_domain ? scaleway_domain_registration.this[0].id : null
 }
 
 # ==============================================================================

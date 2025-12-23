@@ -1,13 +1,83 @@
 # ╔══════════════════════════════════════════════════════════════════════════════╗
-# ║                              SCALEWAY DNS MODULE                             ║
+# ║                           SCALEWAY DOMAINS MODULE                            ║
 # ║                                                                              ║
-# ║  Manages Scaleway DNS zones and records with support for:                    ║
-# ║  - Standard DNS records (A, AAAA, MX, CNAME, TXT, etc.)                     ║
-# ║  - Geo IP routing                                                            ║
-# ║  - Weighted load balancing                                                   ║
-# ║  - View-based routing (client subnet)                                        ║
-# ║  - HTTP health-checked DNS                                                   ║
+# ║  Manages Scaleway domain resources (can be used independently):              ║
+# ║                                                                              ║
+# ║  1. Domain Registration (optional)                                           ║
+# ║     - Register new domains with Scaleway                                     ║
+# ║     - Configure owner/admin/technical contacts                               ║
+# ║                                                                              ║
+# ║  2. DNS Zone Management (optional)                                           ║
+# ║     - Create DNS zones for domains/subdomains                                ║
+# ║                                                                              ║
+# ║  3. DNS Records (optional)                                                   ║
+# ║     - Standard records (A, AAAA, MX, CNAME, TXT, etc.)                      ║
+# ║     - Geo IP routing                                                         ║
+# ║     - Weighted load balancing                                                ║
+# ║     - View-based routing (split-horizon DNS)                                 ║
+# ║     - HTTP health-checked DNS                                                ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
+
+# ==============================================================================
+# Domain Registration
+# ------------------------------------------------------------------------------
+# Registers a new domain with Scaleway Domains.
+# Set register_domain = true and provide registration details.
+# ==============================================================================
+
+resource "scaleway_domain_registration" "this" {
+  count = var.register_domain ? 1 : 0
+
+  domain_names      = [var.domain]
+  duration_in_years = var.registration.duration_in_years
+  project_id        = local.project_id
+
+  # Owner contact - either by ID or inline definition
+  owner_contact_id = var.registration.owner_contact_id
+
+  dynamic "owner_contact" {
+    for_each = var.registration.owner_contact != null ? [var.registration.owner_contact] : []
+
+    content {
+      legal_form                  = owner_contact.value.legal_form
+      firstname                   = owner_contact.value.firstname
+      lastname                    = owner_contact.value.lastname
+      company_name                = owner_contact.value.company_name
+      email                       = owner_contact.value.email
+      phone_number                = owner_contact.value.phone_number
+      address_line_1              = owner_contact.value.address_line_1
+      address_line_2              = owner_contact.value.address_line_2
+      zip                         = owner_contact.value.zip
+      city                        = owner_contact.value.city
+      state                       = owner_contact.value.state
+      country                     = owner_contact.value.country
+      vat_identification_code     = owner_contact.value.vat_identification_code
+      company_identification_code = owner_contact.value.company_identification_code
+      whois_opt_in                = owner_contact.value.whois_opt_in
+      email_alt                   = owner_contact.value.email_alt
+      lang                        = owner_contact.value.lang
+      resale                      = owner_contact.value.resale
+
+      # FR extension
+      dynamic "extension_fr" {
+        for_each = owner_contact.value.extension_fr != null ? [owner_contact.value.extension_fr] : []
+
+        content {
+          mode = extension_fr.value.mode
+        }
+      }
+
+      # EU extension
+      dynamic "extension_eu" {
+        for_each = owner_contact.value.extension_eu != null ? [owner_contact.value.extension_eu] : []
+
+        content {
+          european_citizenship = extension_eu.value.european_citizenship
+        }
+      }
+    }
+  }
+}
 
 # ==============================================================================
 # DNS Zone
@@ -103,6 +173,6 @@ resource "scaleway_domain_record" "this" {
     }
   }
 
-  # Ensure zone exists before creating records
+  # Ensure zone exists before creating records (if zone is being created)
   depends_on = [scaleway_domain_zone.this]
 }

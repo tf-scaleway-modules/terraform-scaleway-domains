@@ -69,6 +69,99 @@ variable "project_id" {
 }
 
 # ==============================================================================
+# Domain Registration Configuration
+# ==============================================================================
+
+variable "register_domain" {
+  description = <<-EOT
+    Whether to register the domain with Scaleway.
+
+    Set to true to register a new domain or manage an existing registration.
+    Set to false if the domain is already registered elsewhere.
+
+    IMPORTANT: Domain registration incurs costs and is subject to registrar policies.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "registration" {
+  description = <<-EOT
+    Domain registration configuration.
+
+    Required when register_domain = true.
+    Configures registration period, contacts, auto-renewal, and DNSSEC.
+  EOT
+  type = object({
+    # Registration period
+    duration_in_years = optional(number, 1) # 1-10 years
+
+    # Owner contact - Required for registration
+    # Either provide owner_contact_id OR owner_contact details
+    owner_contact_id = optional(string) # ID of existing contact
+
+    owner_contact = optional(object({
+      # Legal information
+      legal_form   = string                 # individual, company, association, etc.
+      firstname    = string                 # First name
+      lastname     = string                 # Last name
+      company_name = optional(string, null) # Company name (if applicable)
+
+      # Contact information
+      email        = string # Email address
+      phone_number = string # Phone number with country code (+33...)
+
+      # Address
+      address_line_1 = string                 # Street address
+      address_line_2 = optional(string, null) # Additional address info
+      zip            = string                 # Postal/ZIP code
+      city           = string                 # City
+      state          = optional(string, null) # State/Province
+      country        = string                 # ISO country code (FR, US, etc.)
+
+      # Business identifiers (required for companies)
+      vat_identification_code     = optional(string, null) # VAT number
+      company_identification_code = optional(string, null) # Company registration number
+
+      # Privacy and additional options
+      whois_opt_in = optional(bool, false)     # Opt-in to WHOIS publication
+      email_alt    = optional(string, null)    # Alternative email
+      lang         = optional(string, "en_US") # Contact language
+      resale       = optional(bool, false)     # Reseller flag
+
+      # Extensions for specific TLDs
+      extension_fr = optional(object({
+        mode = optional(string) # individual, company, trademark, etc.
+      }))
+
+      extension_eu = optional(object({
+        european_citizenship = optional(string) # EU citizenship country
+      }))
+    }))
+
+    # Administrative contact (optional - defaults to owner)
+    administrative_contact_id = optional(string)
+
+    # Technical contact (optional - defaults to owner)
+    technical_contact_id = optional(string)
+  })
+  default = null
+
+  validation {
+    condition     = var.registration == null || (var.registration.duration_in_years >= 1 && var.registration.duration_in_years <= 10)
+    error_message = "Registration duration must be between 1 and 10 years."
+  }
+
+  validation {
+    condition = var.registration == null || (
+      var.registration.owner_contact_id != null ||
+      var.registration.owner_contact != null
+    )
+    error_message = "Either owner_contact_id or owner_contact must be provided for domain registration."
+  }
+}
+
+# ==============================================================================
 # DNS Zone Configuration
 # ==============================================================================
 
