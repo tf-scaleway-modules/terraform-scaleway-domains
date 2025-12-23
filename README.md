@@ -1,40 +1,178 @@
-# Scaleway Domains Terraform Module
+# Scaleway DNS Terraform Module
 
 [![Apache 2.0][apache-shield]][apache]
 [![Terraform][terraform-badge]][terraform-url]
 [![Scaleway Provider][scaleway-badge]][scaleway-url]
-[![Latest Release][release-badge]][release-url]
 
-A **production-ready** Terraform/OpenTofu module for creating and managing Scaleway Domains and DNS resources.
+A **production-ready** Terraform/OpenTofu module for managing Scaleway DNS zones and records with support for advanced dynamic DNS features.
 
-## Overview
+## Features
 
-This module provides comprehensive management for Scaleway
-
-### Key Features
-
+- **DNS Zone Management** - Create and manage DNS zones for domains and subdomains
+- **Standard DNS Records** - A, AAAA, MX, CNAME, TXT, NS, PTR, SRV, DNAME, ALIAS, TLSA, CAA
+- **Geo IP Routing** - Route traffic based on user geographic location
+- **Weighted Load Balancing** - Distribute traffic across servers by weight
+- **View-based Routing** - Return different IPs based on client subnet
+- **HTTP Health-Checked DNS** - Automatic failover with health checks
+- **Input Validation** - Comprehensive validation for all inputs
+- **Type Safety** - Full type definitions with optional parameters
 
 ## Quick Start
 
 ### Prerequisites
 
-- Terraform >= 1.10.7 or OpenTofu >= 1.10.7
-- Scaleway account with appropriate permissions
-- Organization ID from Scaleway Console
+- Terraform >= 1.10 or OpenTofu >= 1.10
+- Scaleway account with DNS API access
+- Domain registered or transferred to Scaleway
 
-### Minimal Example
+### Basic Usage
 
+```hcl
+module "dns" {
+  source = "path/to/scaleway-domains"
 
-## Usage Examples
+  domain = "example.com"
 
+  records = [
+    {
+      name = ""
+      type = "A"
+      data = "93.184.216.34"
+    },
+    {
+      name = "www"
+      type = "CNAME"
+      data = "example.com."
+    },
+    {
+      name     = ""
+      type     = "MX"
+      data     = "mail.example.com."
+      priority = 10
+    }
+  ]
+}
+```
 
-## Architecture
+### Using Project Name Lookup
 
+```hcl
+module "dns" {
+  source = "path/to/scaleway-domains"
+
+  # Lookup project by name
+  organization_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  project_name    = "my-project"
+
+  domain      = "example.com"
+  subdomain   = "staging"
+  create_zone = true
+
+  records = [
+    {
+      name = ""
+      type = "A"
+      data = "10.0.0.1"
+    }
+  ]
+}
+```
+
+## Advanced Features
+
+### Geo IP Routing
+
+Route users to the nearest datacenter based on their location:
+
+```hcl
+records = [
+  {
+    name = "cdn"
+    type = "A"
+    geo_ip = {
+      matches = [
+        {
+          data       = "10.0.1.1"  # EU datacenter
+          continents = ["EU"]
+        },
+        {
+          data       = "10.0.2.1"  # NA datacenter
+          continents = ["NA"]
+        },
+        {
+          data = "10.0.0.1"  # Default fallback
+        }
+      ]
+    }
+  }
+]
+```
+
+### Weighted Load Balancing
+
+Distribute traffic across multiple servers:
+
+```hcl
+records = [
+  {
+    name = "api"
+    type = "A"
+    weighted = [
+      { ip = "10.1.0.1", weight = 70 },  # 70% traffic
+      { ip = "10.1.0.2", weight = 20 },  # 20% traffic
+      { ip = "10.1.0.3", weight = 10 }   # 10% traffic
+    ]
+  }
+]
+```
+
+### View-based Routing
+
+Return different IPs based on client subnet (split-horizon DNS):
+
+```hcl
+records = [
+  {
+    name = "db"
+    type = "A"
+    data = "203.0.113.10"  # Default for external clients
+    view = [
+      {
+        subnet = "10.0.0.0/8"
+        data   = "10.100.0.10"  # Internal network
+      },
+      {
+        subnet = "192.168.0.0/16"
+        data   = "10.100.0.11"  # Office network
+      }
+    ]
+  }
+]
+```
+
+### HTTP Health-Checked DNS
+
+Automatic failover based on health checks:
+
+```hcl
+records = [
+  {
+    name = "api"
+    type = "A"
+    http_service = {
+      ips          = ["10.2.0.1", "10.2.0.2", "10.2.0.3"]
+      url          = "http://api.example.com/health"
+      must_contain = "healthy"
+      strategy     = "hashed"  # random, hashed, or all
+    }
+  }
+]
+```
 
 ## Examples
 
-- [Minimal](./examples/minimal/) - Simple secret and key creation
-- [Complete](./examples/complete/) - All features including ephemeral secrets, protected secrets, multiple key types, and rotation policies
+- [Minimal](./examples/minimal/) - Basic A, CNAME, and MX records
+- [Complete](./examples/complete/) - All features including dynamic DNS
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
@@ -48,7 +186,7 @@ This module provides comprehensive management for Scaleway
 
 | Name | Version |
 |------|---------|
-| <a name="provider_scaleway"></a> [scaleway](#provider\_scaleway) | ~> 2.64 |
+| <a name="provider_scaleway"></a> [scaleway](#provider\_scaleway) | 2.65.1 |
 
 ## Modules
 
@@ -59,7 +197,6 @@ No modules.
 | Name | Type |
 |------|------|
 | [scaleway_domain_record.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/domain_record) | resource |
-| [scaleway_domain_registration.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/domain_registration) | resource |
 | [scaleway_domain_zone.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/domain_zone) | resource |
 | [scaleway_account_project.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/data-sources/account_project) | data source |
 
@@ -67,24 +204,34 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_dns_zone"></a> [dns\_zone](#input\_dns\_zone) | The domain zone | `string` | n/a | yes |
-| <a name="input_organization_id"></a> [organization\_id](#input\_organization\_id) | Scaleway Organization ID.<br/><br/>The organization is the top-level entity in Scaleway's hierarchy.<br/>Find this in the Scaleway Console under Organization Settings.<br/><br/>Format: UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) | `string` | n/a | yes |
-| <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Scaleway Project name where resources will be created.<br/><br/>Projects provide logical isolation within an organization.<br/>The project ID will be automatically resolved from this name.<br/><br/>Naming rules:<br/>- Must start with a lowercase letter<br/>- Can contain lowercase letters, numbers, and hyphens<br/>- Must be 2-63 characters long | `string` | n/a | yes |
-| <a name="input_records"></a> [records](#input\_records) | List of DNS records to create | <pre>list(object({<br/>    record_name = string<br/>    record_type = string<br/>    record_data = string<br/>    record_ttl  = optional(number, 3600)<br/>  }))</pre> | n/a | yes |
-| <a name="input_region"></a> [region](#input\_region) | Scaleway region where resources will be created.<br/><br/>If not provided, defaults to the provider's region configuration.<br/><br/>Valid regions: fr-par, nl-ams, pl-waw | `string` | `null` | no |
+| <a name="input_create_zone"></a> [create\_zone](#input\_create\_zone) | Whether to create the DNS zone.<br/><br/>Set to true to create a new DNS zone for the domain/subdomain.<br/>Set to false if the zone already exists and you only want to manage records. | `bool` | `false` | no |
+| <a name="input_domain"></a> [domain](#input\_domain) | The root domain name for DNS management.<br/><br/>This is the main domain where DNS zones and records will be created.<br/>The domain must already be registered or transferred to Scaleway.<br/><br/>Examples: "example.com", "mycompany.io" | `string` | n/a | yes |
+| <a name="input_organization_id"></a> [organization\_id](#input\_organization\_id) | Scaleway Organization ID.<br/><br/>Required when using project\_name to look up the project.<br/>The organization is the top-level entity in Scaleway's hierarchy.<br/>Find this in the Scaleway Console under Organization Settings.<br/><br/>Format: UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) | `string` | `null` | no |
+| <a name="input_project_id"></a> [project\_id](#input\_project\_id) | Scaleway Project ID where the DNS zone will be created.<br/><br/>Either provide project\_id directly, or use organization\_id + project\_name<br/>to look up the project. If neither is provided, uses the default project<br/>from provider configuration.<br/><br/>Format: UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) | `string` | `null` | no |
+| <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Scaleway Project name where resources will be created.<br/><br/>Use this with organization\_id to look up the project by name.<br/>The project ID will be automatically resolved from this name.<br/><br/>Naming rules:<br/>- Must start with a lowercase letter<br/>- Can contain lowercase letters, numbers, and hyphens<br/>- Must be 1-63 characters long | `string` | `null` | no |
+| <a name="input_records"></a> [records](#input\_records) | List of DNS records to create in the zone.<br/><br/>Each record supports standard DNS attributes plus Scaleway's dynamic DNS features:<br/>- geo\_ip: Route traffic based on user location<br/>- weighted: Distribute traffic by weight<br/>- view: Return different IPs based on client subnet<br/>- http\_service: Health-checked DNS with automatic failover<br/><br/>Record Types: A, AAAA, MX, CNAME, DNAME, ALIAS, NS, PTR, SRV, TXT, TLSA, CAA | <pre>list(object({<br/>    # Core record attributes<br/>    name     = string                 # Record name (empty string for root)<br/>    type     = string                 # DNS record type<br/>    data     = optional(string, null) # Record data (required for standard records)<br/>    ttl      = optional(number, 3600) # Time to live in seconds<br/>    priority = optional(number, null) # Priority (for MX, SRV records)<br/><br/>    # Dynamic DNS: Geo IP routing<br/>    geo_ip = optional(object({<br/>      matches = list(object({<br/>        data       = string                 # IP to return for this match<br/>        countries  = optional(list(string)) # Country codes (FR, US, GB, etc.)<br/>        continents = optional(list(string)) # Continent codes (EU, NA, AS, etc.)<br/>      }))<br/>    }))<br/><br/>    # Dynamic DNS: Weighted load balancing<br/>    weighted = optional(list(object({<br/>      ip     = string # Target IP address<br/>      weight = number # Weight for traffic distribution<br/>    })))<br/><br/>    # Dynamic DNS: View-based routing (by client subnet)<br/>    view = optional(list(object({<br/>      subnet = string # Client subnet in CIDR notation<br/>      data   = string # IP to return for this subnet<br/>    })))<br/><br/>    # Dynamic DNS: HTTP health-checked DNS<br/>    http_service = optional(object({<br/>      ips          = list(string)           # IPs to health check<br/>      must_contain = string                 # String that must be in response<br/>      url          = string                 # Health check URL<br/>      strategy     = string                 # random, hashed, or all<br/>      user_agent   = optional(string, null) # Custom user agent<br/>    }))<br/>  }))</pre> | `[]` | no |
+| <a name="input_subdomain"></a> [subdomain](#input\_subdomain) | The subdomain (zone name) to create within the domain.<br/><br/>Leave empty ("") to manage records directly on the root domain.<br/>Use a subdomain name to create a delegated zone.<br/><br/>Examples: "", "api", "staging" | `string` | `""` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_project_id"></a> [project\_id](#output\_project\_id) | The ID of the Scaleway project (resolved from project\_name). |
+| <a name="output_dns_zone"></a> [dns\_zone](#output\_dns\_zone) | The full DNS zone name (domain or subdomain.domain). |
+| <a name="output_project_id"></a> [project\_id](#output\_project\_id) | The ID of the Scaleway project (resolved from project\_name or provided directly). |
+| <a name="output_record_fqdns"></a> [record\_fqdns](#output\_record\_fqdns) | Map of record keys to their fully qualified domain names. |
+| <a name="output_record_ids"></a> [record\_ids](#output\_record\_ids) | List of all DNS record IDs. |
+| <a name="output_records"></a> [records](#output\_records) | Map of all DNS records created by this module. |
+| <a name="output_zone_id"></a> [zone\_id](#output\_zone\_id) | The ID of the created DNS zone (null if create\_zone = false). |
+| <a name="output_zone_ns"></a> [zone\_ns](#output\_zone\_ns) | The nameservers for the created DNS zone. |
+| <a name="output_zone_ns_default"></a> [zone\_ns\_default](#output\_zone\_ns\_default) | The default nameservers for the created DNS zone. |
+| <a name="output_zone_status"></a> [zone\_status](#output\_zone\_status) | The status of the created DNS zone. |
 <!-- END_TF_DOCS -->
 
 ## Contributing
 
 ### Prerequisites
 
-This module uses [mise](https://mise.jdx.dev/) for tool management. Install the required tools:
+This module uses [mise](https://mise.jdx.dev/) for tool management:
 
 ```bash
 # Install mise (if not already installed)
@@ -107,21 +254,16 @@ pre-commit install --install-hooks
    tofu fmt -recursive
    tofu validate
    ```
-5. Pre-commit hooks will automatically run on commit:
-   - `tofu fmt` - Format Terraform/OpenTofu files
-   - `terraform-docs` - Update README.md documentation
-   - `git-cliff` - Update CHANGELOG.md
+5. Pre-commit hooks will automatically run on commit
 6. Submit a merge request
 
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
 
-Copyright 2025 - This module is independently maintained and not affiliated with Scaleway.
-
 ## Disclaimer
 
-This module is provided "as is" without warranty of any kind. Always test in non-production environments first.
+This module is provided "as is" without warranty. Always test in non-production environments first.
 
 ---
 
@@ -131,5 +273,3 @@ This module is provided "as is" without warranty of any kind. Always test in non
 [terraform-url]: https://www.terraform.io
 [scaleway-badge]: https://img.shields.io/badge/Scaleway%20Provider-%3E%3D2.64-4f0599
 [scaleway-url]: https://registry.terraform.io/providers/scaleway/scaleway/
-[release-badge]: https://img.shields.io/gitlab/v/release/leminnov/terraform/modules/scaleway-secrets-and-keys?include_prereleases&sort=semver
-[release-url]: https://gitlab.com/leminnov/terraform/modules/scaleway-secrets-and-keys/-/releases

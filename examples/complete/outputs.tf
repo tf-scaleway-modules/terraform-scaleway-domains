@@ -1,12 +1,1 @@
-# ╔══════════════════════════════════════════════════════════════════════════════╗
-# ║                     COMPLETE EXAMPLE - OUTPUTS                               ║
-# ╚══════════════════════════════════════════════════════════════════════════════╝
-
-# ==============================================================================
-# Project Output
-# ==============================================================================
-
-output "project_id" {
-  description = "The resolved project ID"
-  value       = module.secrets_and_keys.project_id
-}
+# Outputs are defined inline in main.tf for simplicity
