@@ -95,7 +95,15 @@ variable "registration" {
     Domain registration configuration.
 
     Required when register_domain = true.
-    Configures the registration period and the owner contact.
+    Configures the registration period, the owner contact, auto-renewal and DNSSEC.
+
+    auto_renew: renew the domain automatically before it expires. The owner
+    is billed at each renewal, so it defaults to false.
+
+    dnssec: enable DNSSEC. The domain's DNS must be served by Scaleway DNS
+    (see create_zone) and the DS record, exposed as registration_ds_record,
+    must be published at the registrar. Enabling it without Scaleway DNS can
+    break resolution, so it defaults to false.
 
     administrative_contact_id and technical_contact_id are deprecated and
     ignored (the provider cannot set these contacts); a plan warning is
@@ -104,6 +112,10 @@ variable "registration" {
   type = object({
     # Registration period
     duration_in_years = optional(number, 1) # 1-10 years
+
+    # DEVIATION(terraform-variables): no enable_ prefix; attributes of this object mirror provider argument names
+    auto_renew = optional(bool, false) # Renew automatically (billed)
+    dnssec     = optional(bool, false) # Enable DNSSEC (requires Scaleway DNS)
 
     # Owner contact - Required for registration
     # Either provide owner_contact_id OR owner_contact details

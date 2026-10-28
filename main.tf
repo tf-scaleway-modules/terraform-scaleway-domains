@@ -31,6 +31,8 @@ resource "scaleway_domain_registration" "this" {
   domain_names      = [var.domain]
   duration_in_years = var.registration.duration_in_years
   project_id        = local.project_id
+  auto_renew        = var.registration.auto_renew
+  dnssec            = var.registration.dnssec
 
   # Owner contact - either by ID or inline definition
   owner_contact_id = var.registration.owner_contact_id
