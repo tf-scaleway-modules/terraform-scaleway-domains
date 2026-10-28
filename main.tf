@@ -13,7 +13,7 @@
 # ║  3. DNS Records (optional)                                                   ║
 # ║     - Standard records (A, AAAA, MX, CNAME, TXT, etc.)                      ║
 # ║     - Geo IP routing                                                         ║
-# ║     - Weighted load balancing                                                ║
+# ║     - Weighted DNS routing                                                   ║
 # ║     - View-based routing (split-horizon DNS)                                 ║
 # ║     - HTTP health-checked DNS                                                ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -31,13 +31,6 @@ resource "scaleway_domain_registration" "this" {
   domain_names      = [var.domain]
   duration_in_years = var.registration.duration_in_years
   project_id        = local.project_id
-
-  lifecycle {
-    precondition {
-      condition     = var.registration != null
-      error_message = "The 'registration' variable must be provided when 'register_domain' is true."
-    }
-  }
 
   # Owner contact - either by ID or inline definition
   owner_contact_id = var.registration.owner_contact_id
@@ -83,6 +76,17 @@ resource "scaleway_domain_registration" "this" {
         }
       }
     }
+  }
+}
+
+# The provider has no administrative/technical contact arguments (computed only).
+check "registration_contact_ids_ignored" {
+  assert {
+    condition = var.registration == null || (
+      var.registration.administrative_contact_id == null &&
+      var.registration.technical_contact_id == null
+    )
+    error_message = "registration.administrative_contact_id and registration.technical_contact_id are deprecated and ignored: the Scaleway provider cannot set these contacts."
   }
 }
 
@@ -142,7 +146,7 @@ resource "scaleway_domain_record" "this" {
   }
 
   # ---------------------------------------------------------------------------
-  # Dynamic DNS: Weighted Load Balancing
+  # Dynamic DNS: Weighted Routing
   # ---------------------------------------------------------------------------
   dynamic "weighted" {
     for_each = each.value.weighted != null ? each.value.weighted : []

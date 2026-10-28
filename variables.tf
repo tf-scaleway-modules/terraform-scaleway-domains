@@ -44,7 +44,7 @@ variable "project_name" {
   default     = null
 
   validation {
-    condition     = var.project_name == null || can(regex("^[a-z][a-z0-9-]{0,61}[a-z0-9]$", var.project_name)) || (var.project_name != null && length(var.project_name) == 1)
+    condition     = var.project_name == null || can(regex("^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$", var.project_name))
     error_message = "Project name must be lowercase alphanumeric with hyphens, start with a letter, and be 1-63 characters."
   }
 }
@@ -83,6 +83,11 @@ variable "register_domain" {
   EOT
   type        = bool
   default     = false
+
+  validation {
+    condition     = !var.register_domain || var.registration != null
+    error_message = "The 'registration' variable must be provided when 'register_domain' is true."
+  }
 }
 
 variable "registration" {
@@ -90,7 +95,11 @@ variable "registration" {
     Domain registration configuration.
 
     Required when register_domain = true.
-    Configures registration period, contacts, auto-renewal, and DNSSEC.
+    Configures the registration period and the owner contact.
+
+    administrative_contact_id and technical_contact_id are deprecated and
+    ignored (the provider cannot set these contacts); a plan warning is
+    emitted when they are set. They will be removed in the next major release.
   EOT
   type = object({
     # Registration period
@@ -139,11 +148,9 @@ variable "registration" {
       }))
     }))
 
-    # Administrative contact (optional - defaults to owner)
+    # Deprecated and ignored: the provider cannot set these contacts.
     administrative_contact_id = optional(string)
-
-    # Technical contact (optional - defaults to owner)
-    technical_contact_id = optional(string)
+    technical_contact_id      = optional(string)
   })
   default = null
 
@@ -222,11 +229,15 @@ variable "records" {
 
     Each record supports standard DNS attributes plus Scaleway's dynamic DNS features:
     - geo_ip: Route traffic based on user location
-    - weighted: Distribute traffic by weight
+    - weighted: Return IPs in proportion to their weight
     - view: Return different IPs based on client subnet
     - http_service: Health-checked DNS with automatic failover
 
     Record Types: A, AAAA, MX, CNAME, DNAME, ALIAS, NS, PTR, SRV, TXT, TLSA, CAA
+
+    Records are keyed "<type>_<name>_<index>" ("@" for the root), where index
+    is the position in this list. Inserting or reordering records changes the
+    keys of the shifted ones and replaces them: append new records at the end.
   EOT
   type = list(object({
     # Core record attributes
@@ -245,7 +256,7 @@ variable "records" {
       }))
     }))
 
-    # Dynamic DNS: Weighted load balancing
+    # Dynamic DNS: Weighted routing
     weighted = optional(list(object({
       ip     = string # Target IP address
       weight = number # Weight for traffic distribution

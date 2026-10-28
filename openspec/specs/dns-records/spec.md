@@ -20,6 +20,10 @@ The module SHALL create one `scaleway_domain_record` per element of `records` (d
 - **WHEN** a record sets `ttl = 300` and an MX record sets `priority = 10`
 - **THEN** the records carry TTL 300 and priority 10
 
+#### Scenario: Record inserted before another
+- **WHEN** a record is inserted at index 0 of an existing list
+- **THEN** every later record gets a new key, so its previous address is destroyed and recreated; appending at the end leaves existing keys unchanged
+
 ### Requirement: Record type validation
 Every record `type` SHALL be one of `A`, `AAAA`, `MX`, `CNAME`, `DNAME`, `ALIAS`, `NS`, `PTR`, `SRV`, `TXT`, `TLSA`, `CAA`.
 
@@ -63,7 +67,7 @@ A record MAY set `geo_ip` with a list of `matches`, each with a `data` IP and op
 - **WHEN** a record sets `geo_ip.matches` with a `continents = ["EU"]` entry and a `countries = ["FR"]` entry
 - **THEN** the record carries one `geo_ip` block with two `matches` blocks holding those values
 
-### Requirement: Weighted load balancing
+### Requirement: Weighted DNS routing
 A record MAY set `weighted` as a list of `{ ip, weight }` objects. The record SHALL carry one `weighted` block per entry, and none when it is unset.
 
 #### Scenario: Weighted record

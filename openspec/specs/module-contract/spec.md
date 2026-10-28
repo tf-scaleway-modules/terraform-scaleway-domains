@@ -42,12 +42,20 @@ The module SHALL expose the inputs `organization_id`, `project_name` and `projec
 - **WHEN** `project_name = "My_Project"`
 - **THEN** the plan fails with "Project name must be lowercase alphanumeric with hyphens, start with a letter, and be 1-63 characters."
 
+#### Scenario: Single-character project name that is not a lowercase letter
+- **WHEN** `project_name = "A"` or `project_name = "1"`
+- **THEN** the plan fails with "Project name must be lowercase alphanumeric with hyphens, start with a letter, and be 1-63 characters."
+
+#### Scenario: Single lowercase letter project name
+- **WHEN** `project_name = "a"`
+- **THEN** the input is accepted
+
 #### Scenario: Valid project name
 - **WHEN** `project_name = "my-project-1"`
 - **THEN** the input is accepted
 
 ### Requirement: Project resolution
-The module SHALL resolve the project ID from `project_id` when it is set. Otherwise, when both `organization_id` and `project_name` are set, it SHALL look the project up by name with a `scaleway_account_project` data source and use its ID. The data source SHALL NOT be read unless both inputs are set. The resolved ID SHALL be applied as `project_id` on the domain registration and on the DNS zone.
+The module SHALL resolve the project ID from `project_id` when it is set. Otherwise, when both `organization_id` and `project_name` are set, it SHALL look the project up by name with a `scaleway_account_project` data source and use its ID. The data source SHALL NOT be read unless both inputs are set. The resolved ID, or `null` when none resolves, SHALL be applied as `project_id` on the domain registration and on the DNS zone.
 
 #### Scenario: Project ID given
 - **WHEN** `project_id` is a UUID
@@ -60,6 +68,10 @@ The module SHALL resolve the project ID from `project_id` when it is set. Otherw
 #### Scenario: Only a project name
 - **WHEN** `project_name` is set but `organization_id` is `null` and `project_id` is `null`
 - **THEN** no project lookup is made
+
+#### Scenario: No project resolved
+- **WHEN** `project_id`, `organization_id` and `project_name` are all `null`
+- **THEN** the plan succeeds, the `project_id` output is `null` and the provider default project applies to the resources
 
 ### Requirement: Outputs
 The module SHALL expose the outputs `project_id`, `registration_id`, `dns_zone`, `zone_id`, `zone_ns`, `zone_ns_default`, `zone_status`, `records`, `record_ids` and `record_fqdns`. Every output SHALL carry a description. No output SHALL be marked sensitive, and none exposes a secret.
