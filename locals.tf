@@ -11,10 +11,8 @@ locals {
   # Priority: project_id > data source lookup > null (provider default)
   # ==============================================================================
 
-  project_id = coalesce(
-    var.project_id,
-    try(data.scaleway_account_project.this[0].id, null)
-  )
+  # coalesce() fails when every argument is null, so use a conditional.
+  project_id = var.project_id != null ? var.project_id : try(data.scaleway_account_project.this[0].id, null)
 
   # ==============================================================================
   # DNS Zone
@@ -28,7 +26,9 @@ locals {
   # ==============================================================================
 
   # Transform records list into a map for for_each
-  # Key format: "{type}_{name}" or "{type}_@" for root records
+  # Key format: "{type}_{name}_{index}", with "@" as name for root records.
+  # The index is the list position: inserting or reordering records changes the
+  # keys of the shifted ones (they are replaced). Append new records at the end.
   records_map = {
     for idx, record in var.records :
     "${record.type}_${record.name != "" ? record.name : "@"}_${idx}" => record
