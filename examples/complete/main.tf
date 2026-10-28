@@ -5,7 +5,7 @@
 # ║  - Zone creation                                                             ║
 # ║  - Standard DNS records                                                      ║
 # ║  - Geo IP routing                                                            ║
-# ║  - Weighted load balancing                                                   ║
+# ║  - Weighted DNS routing                                                      ║
 # ║  - View-based routing                                                        ║
 # ║  - HTTP health-checked DNS                                                   ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -130,8 +130,8 @@ module "dns" {
     },
 
     # -------------------------------------------------------------------------
-    # Weighted Load Balancing
-    # Distribute traffic across multiple servers by weight
+    # Weighted DNS Routing
+    # Return IPs in proportion to their weight
     # -------------------------------------------------------------------------
     {
       name = "lb"
