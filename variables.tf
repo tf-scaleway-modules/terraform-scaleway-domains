@@ -6,56 +6,14 @@
 # ╚══════════════════════════════════════════════════════════════════════════════╝
 
 # ==============================================================================
-# Organization & Project Configuration
+# Project Configuration
 # ==============================================================================
-
-variable "organization_id" {
-  description = <<-EOT
-    Scaleway Organization ID.
-
-    Required when using project_name to look up the project.
-    The organization is the top-level entity in Scaleway's hierarchy.
-    Find this in the Scaleway Console under Organization Settings.
-
-    Format: UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
-  EOT
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.organization_id == null || can(regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", var.organization_id))
-    error_message = "Organization ID must be a valid UUID format."
-  }
-}
-
-variable "project_name" {
-  description = <<-EOT
-    Scaleway Project name where resources will be created.
-
-    Use this with organization_id to look up the project by name.
-    The project ID will be automatically resolved from this name.
-
-    Naming rules:
-    - Must start with a lowercase letter
-    - Can contain lowercase letters, numbers, and hyphens
-    - Must be 1-63 characters long
-  EOT
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.project_name == null || can(regex("^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$", var.project_name))
-    error_message = "Project name must be lowercase alphanumeric with hyphens, start with a letter, and be 1-63 characters."
-  }
-}
 
 variable "project_id" {
   description = <<-EOT
-    Scaleway Project ID where the DNS zone will be created.
+    Scaleway Project ID applied to the domain registration and the DNS zone.
 
-    Either provide project_id directly, or use organization_id + project_name
-    to look up the project. If neither is provided, uses the default project
-    from provider configuration.
+    Leave null to use the default project of the provider configuration.
 
     Format: UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
   EOT
@@ -72,30 +30,12 @@ variable "project_id" {
 # Domain Registration Configuration
 # ==============================================================================
 
-variable "register_domain" {
-  description = <<-EOT
-    Whether to register the domain with Scaleway.
-
-    Set to true to register a new domain or manage an existing registration.
-    Set to false if the domain is already registered elsewhere.
-
-    IMPORTANT: Domain registration incurs costs and is subject to registrar policies.
-  EOT
-  type        = bool
-  default     = false
-
-  validation {
-    condition     = !var.register_domain || var.registration != null
-    error_message = "The 'registration' variable must be provided when 'register_domain' is true."
-  }
-}
-
 variable "registration" {
   description = <<-EOT
     Domain registration configuration.
 
-    Required when register_domain = true.
-    Configures the registration period, the owner contact, auto-renewal and DNSSEC.
+    Set to enable the registration of var.domain; null (default) registers
+    nothing. Configures the registration period, the owner contact, auto-renewal and DNSSEC.
 
     auto_renew: renew the domain automatically before it expires. The owner
     is billed at each renewal, so it defaults to false.
@@ -105,9 +45,8 @@ variable "registration" {
     must be published at the registrar. Enabling it without Scaleway DNS can
     break resolution, so it defaults to false.
 
-    administrative_contact_id and technical_contact_id are deprecated and
-    ignored (the provider cannot set these contacts); a plan warning is
-    emitted when they are set. They will be removed in the next major release.
+    owner_contact.extension_fr carries the .fr details: mode plus one of
+    individual_info, association_info, duns_info or trademark_info.
   EOT
   type = object({
     # Registration period
@@ -153,16 +92,30 @@ variable "registration" {
       # Extensions for specific TLDs
       extension_fr = optional(object({
         mode = optional(string) # individual, company, trademark, etc.
+
+        individual_info = optional(object({
+          whois_opt_in = optional(bool) # Publish contact in WHOIS
+        }))
+
+        association_info = optional(object({
+          publication_jo      = optional(string) # Journal officiel publication date
+          publication_jo_page = optional(number) # Journal officiel page
+        }))
+
+        duns_info = optional(object({
+          duns_id  = optional(string) # D-U-N-S number
+          local_id = optional(string) # Local company ID
+        }))
+
+        trademark_info = optional(object({
+          trademark_inpi = optional(string) # INPI trademark number
+        }))
       }))
 
       extension_eu = optional(object({
         european_citizenship = optional(string) # EU citizenship country
       }))
     }))
-
-    # Deprecated and ignored: the provider cannot set these contacts.
-    administrative_contact_id = optional(string)
-    technical_contact_id      = optional(string)
   })
   default = null
 
@@ -189,7 +142,7 @@ variable "domain" {
     The root domain name for DNS management.
 
     This is the main domain where DNS zones and records will be created.
-    The domain can be registered via this module (register_domain = true)
+    The domain can be registered via this module (registration)
     or must already be registered/transferred to Scaleway.
 
     Examples: "example.com", "mycompany.io"
@@ -237,36 +190,35 @@ variable "create_zone" {
 
 variable "records" {
   description = <<-EOT
-    List of DNS records to create in the zone.
+    DNS records to create in the zone, keyed by a name of your choice.
+
+    The key becomes the resource address (scaleway_domain_record.this["<key>"]):
+    keep it stable, and reorder or add entries freely.
 
     Each record supports standard DNS attributes plus Scaleway's dynamic DNS features:
-    - geo_ip: Route traffic based on user location
+    - geo_ip: Route traffic based on user location (list of matches)
     - weighted: Return IPs in proportion to their weight
-    - view: Return different IPs based on client subnet
+    - view: Return different IPs based on client subnet (CIDR)
     - http_service: Health-checked DNS with automatic failover
 
     Record Types: A, AAAA, MX, CNAME, DNAME, ALIAS, NS, PTR, SRV, TXT, TLSA, CAA
 
-    Records are keyed "<type>_<name>_<index>" ("@" for the root), where index
-    is the position in this list. Inserting or reordering records changes the
-    keys of the shifted ones and replaces them: append new records at the end.
+    data is required on every record; for dynamic DNS it is the fallback value.
   EOT
-  type = list(object({
+  type = map(object({
     # Core record attributes
-    name     = string                 # Record name (empty string for root)
     type     = string                 # DNS record type
-    data     = optional(string, null) # Record data (required for standard records)
+    data     = string                 # Record data (fallback value for dynamic DNS)
+    name     = optional(string, "")   # Record name (empty string for root)
     ttl      = optional(number, 3600) # Time to live in seconds
     priority = optional(number, null) # Priority (for MX, SRV records)
 
-    # Dynamic DNS: Geo IP routing
-    geo_ip = optional(object({
-      matches = list(object({
-        data       = string                 # IP to return for this match
-        countries  = optional(list(string)) # Country codes (FR, US, GB, etc.)
-        continents = optional(list(string)) # Continent codes (EU, NA, AS, etc.)
-      }))
-    }))
+    # Dynamic DNS: Geo IP routing (one geo_ip block, one matches block per element)
+    geo_ip = optional(list(object({
+      data       = string                 # IP to return for this match
+      countries  = optional(list(string)) # Country codes (FR, US, GB, etc.)
+      continents = optional(list(string)) # Continent codes (EU, NA, AS, etc.)
+    })))
 
     # Dynamic DNS: Weighted routing
     weighted = optional(list(object({
@@ -289,11 +241,11 @@ variable "records" {
       user_agent   = optional(string, null) # Custom user agent
     }))
   }))
-  default = []
+  default = {}
 
   validation {
     condition = alltrue([
-      for r in var.records : contains(
+      for r in values(var.records) : contains(
         ["A", "AAAA", "MX", "CNAME", "DNAME", "ALIAS", "NS", "PTR", "SRV", "TXT", "TLSA", "CAA"],
         r.type
       )
@@ -303,14 +255,14 @@ variable "records" {
 
   validation {
     condition = alltrue([
-      for r in var.records : r.ttl >= 60 && r.ttl <= 86400
+      for r in values(var.records) : r.ttl >= 60 && r.ttl <= 86400
     ])
     error_message = "TTL must be between 60 and 86400 seconds."
   }
 
   validation {
     condition = alltrue([
-      for r in var.records : (
+      for r in values(var.records) : (
         !contains(["MX", "SRV"], r.type) || r.priority != null
       )
     ])
@@ -319,18 +271,20 @@ variable "records" {
 
   validation {
     condition = alltrue([
-      for r in var.records : r.data != null
-    ])
-    error_message = "The 'data' attribute is required for all records. For dynamic DNS (geo_ip, weighted, http_service), it serves as the fallback value."
-  }
-
-  validation {
-    condition = alltrue([
-      for r in var.records : (
+      for r in values(var.records) : (
         r.http_service == null ||
         contains(["random", "hashed", "all"], r.http_service.strategy)
       )
     ])
     error_message = "http_service.strategy must be one of: random, hashed, all."
+  }
+
+  validation {
+    condition = alltrue([
+      for r in values(var.records) : r.view == null || alltrue([
+        for v in r.view : can(cidrhost(v.subnet, 0))
+      ])
+    ])
+    error_message = "view subnet must be a CIDR block (e.g., 10.0.0.0/8)."
   }
 }

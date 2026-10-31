@@ -5,26 +5,17 @@
 # ╚══════════════════════════════════════════════════════════════════════════════╝
 
 # ==============================================================================
-# Project Output
-# ==============================================================================
-
-output "project_id" {
-  description = "The ID of the Scaleway project (resolved from project_name or provided directly)."
-  value       = local.project_id
-}
-
-# ==============================================================================
 # Domain Registration Outputs
 # ==============================================================================
 
 output "registration_id" {
-  description = "The ID of the domain registration (null if register_domain = false)."
-  value       = var.register_domain ? scaleway_domain_registration.this[0].id : null
+  description = "The ID of the domain registration (null if registration = null)."
+  value       = one(scaleway_domain_registration.this[*].id)
 }
 
 output "registration_ds_record" {
-  description = "The DNSSEC DS record to publish at the registrar; empty until dnssec is enabled (null if register_domain = false)."
-  value       = var.register_domain ? scaleway_domain_registration.this[0].ds_record : null
+  description = "The DNSSEC DS record to publish at the registrar; empty until dnssec is enabled (null if registration = null)."
+  value       = one(scaleway_domain_registration.this[*].ds_record)
 }
 
 # ==============================================================================
@@ -61,7 +52,7 @@ output "zone_status" {
 # ==============================================================================
 
 output "records" {
-  description = "Map of all DNS records created by this module."
+  description = "Map of DNS records created by this module, keyed like the records input."
   value = {
     for key, record in scaleway_domain_record.this : key => {
       id       = record.id
@@ -73,14 +64,4 @@ output "records" {
       fqdn     = record.fqdn
     }
   }
-}
-
-output "record_ids" {
-  description = "List of all DNS record IDs."
-  value       = [for record in scaleway_domain_record.this : record.id]
-}
-
-output "record_fqdns" {
-  description = "Map of record keys to their fully qualified domain names."
-  value       = { for key, record in scaleway_domain_record.this : key => record.fqdn }
 }
