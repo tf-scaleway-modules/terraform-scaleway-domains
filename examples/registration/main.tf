@@ -54,6 +54,13 @@ module "my_domain" {
   registration = {
     duration_in_years = 1
 
+    # Renew automatically before expiry (the owner is billed at each renewal)
+    auto_renew = true
+
+    # Enable DNSSEC: needs the zone served by Scaleway DNS (create_zone below);
+    # publish registration_ds_record at the registrar
+    dnssec = true
+
     # Owner contact details
     owner_contact = {
       # Legal information

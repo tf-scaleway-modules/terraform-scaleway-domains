@@ -165,3 +165,62 @@ run "registration_contact_ids_ignored_warns" {
 
   expect_failures = [check.registration_contact_ids_ignored]
 }
+
+run "registration_options_default_false" {
+  command = plan
+
+  variables {
+    register_domain = true
+    registration = {
+      owner_contact_id = "contact-id"
+    }
+  }
+
+  assert {
+    condition     = scaleway_domain_registration.this[0].auto_renew == false && scaleway_domain_registration.this[0].dnssec == false
+    error_message = "auto_renew and dnssec must default to false"
+  }
+}
+
+run "registration_options_enabled" {
+  command = plan
+
+  variables {
+    register_domain = true
+    registration = {
+      owner_contact_id = "contact-id"
+      auto_renew       = true
+      dnssec           = true
+    }
+  }
+
+  assert {
+    condition     = scaleway_domain_registration.this[0].auto_renew == true && scaleway_domain_registration.this[0].dnssec == true
+    error_message = "auto_renew and dnssec must be forwarded when set"
+  }
+}
+
+run "registration_ds_record_null_when_disabled" {
+  command = plan
+
+  assert {
+    condition     = output.registration_ds_record == null
+    error_message = "registration_ds_record must be null when register_domain is false"
+  }
+}
+
+run "registration_ds_record_set_when_enabled" {
+  command = apply
+
+  variables {
+    register_domain = true
+    registration = {
+      owner_contact_id = "contact-id"
+    }
+  }
+
+  assert {
+    condition     = output.registration_ds_record != null
+    error_message = "registration_ds_record must carry the registration value when register_domain is true"
+  }
+}
