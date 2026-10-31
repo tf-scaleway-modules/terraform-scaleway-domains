@@ -22,6 +22,11 @@ output "registration_id" {
   value       = var.register_domain ? scaleway_domain_registration.this[0].id : null
 }
 
+output "registration_ds_record" {
+  description = "The DNSSEC DS record to publish at the registrar; empty until dnssec is enabled (null if register_domain = false)."
+  value       = var.register_domain ? scaleway_domain_registration.this[0].ds_record : null
+}
+
 # ==============================================================================
 # DNS Zone Outputs
 # ==============================================================================

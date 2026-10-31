@@ -7,6 +7,11 @@ output "registration_id" {
   value       = module.my_domain.registration_id
 }
 
+output "registration_ds_record" {
+  description = "The DNSSEC DS record to publish at the registrar"
+  value       = module.my_domain.registration_ds_record
+}
+
 output "dns_zone" {
   description = "The DNS zone"
   value       = module.my_domain.dns_zone
