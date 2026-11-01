@@ -11,14 +11,10 @@
 # Variables
 # ==============================================================================
 
-variable "organization_id" {
-  description = "Your Scaleway Organization ID"
+variable "project_id" {
+  description = "Your Scaleway Project ID (null = provider default project)"
   type        = string
-}
-
-variable "project_name" {
-  description = "Your Scaleway Project name"
-  type        = string
+  default     = null
 }
 
 variable "domain_to_register" {
@@ -42,15 +38,12 @@ module "my_domain" {
   source = "../../"
 
   # Project configuration
-  organization_id = var.organization_id
-  project_name    = var.project_name
+  project_id = var.project_id
 
   # Domain to register
   domain = var.domain_to_register
 
-  # Enable domain registration
-  register_domain = true
-
+  # Setting registration enables the domain registration (null disables it)
   registration = {
     duration_in_years = 1
 
@@ -77,6 +70,13 @@ module "my_domain" {
       zip            = "75001"
       city           = "Paris"
       country        = "FR"
+
+      # .fr domains of companies, associations and trademarks need details
+      # in extension_fr: individual_info, association_info, duns_info or
+      # trademark_info (one of them, next to mode).
+      extension_fr = {
+        mode = "individual"
+      }
     }
   }
 
@@ -84,16 +84,15 @@ module "my_domain" {
   create_zone = true
 
   # Basic DNS records
-  records = [
-    {
-      name = ""
+  records = {
+    root = {
       type = "A"
       data = "192.168.1.100"
-    },
-    {
+    }
+    www = {
       name = "www"
       type = "CNAME"
       data = "${var.domain_to_register}."
     }
-  ]
+  }
 }

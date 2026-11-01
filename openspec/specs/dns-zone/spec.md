@@ -6,7 +6,7 @@ Creates the optional DNS zone for a domain or subdomain, resolves the zone name 
 ## Requirements
 
 ### Requirement: Optional DNS zone
-The module SHALL create one `scaleway_domain_zone` named `this` only when `create_zone = true` (default `false`), for `domain` and `subdomain` in the resolved project. With `create_zone = false` the module SHALL manage records in a zone that already exists.
+The module SHALL create one `scaleway_domain_zone` named `this` only when `create_zone = true` (default `false`), for `domain` and `subdomain` in `project_id` (`null` = provider default project). With `create_zone = false` the module SHALL manage records in a zone that already exists.
 
 #### Scenario: Zone creation enabled
 - **WHEN** `create_zone = true`, `domain = "example.com"` and `subdomain = "staging"`
@@ -15,6 +15,10 @@ The module SHALL create one `scaleway_domain_zone` named `this` only when `creat
 #### Scenario: Zone creation disabled
 - **WHEN** `create_zone = false`
 - **THEN** no zone is planned and `zone_id`, `zone_ns`, `zone_ns_default` and `zone_status` are `null`
+
+#### Scenario: Zone in a given project
+- **WHEN** `create_zone = true` and `project_id` is a UUID
+- **THEN** the planned zone carries that `project_id`
 
 ### Requirement: Zone name
 The `dns_zone` output SHALL be `domain` when `subdomain` is empty, and `<subdomain>.<domain>` otherwise. Records SHALL be created in that zone whether or not the module creates it.

@@ -21,32 +21,30 @@ module "dns" {
 
   domain = "example.com"
 
-  records = [
+  records = {
     # Root A record
-    {
-      name = ""
+    root = {
       type = "A"
       data = "93.184.216.34"
-    },
+    }
     # WWW subdomain
-    {
+    www = {
       name = "www"
       type = "CNAME"
       data = "example.com."
-    },
+    }
     # API subdomain with custom TTL
-    {
+    api = {
       name = "api"
       type = "A"
       data = "93.184.216.35"
       ttl  = 300
-    },
+    }
     # Mail server
-    {
-      name     = ""
+    mx = {
       type     = "MX"
       data     = "mail.example.com."
       priority = 10
     }
-  ]
+  }
 }

@@ -14,14 +14,10 @@
 # Variables
 # ==============================================================================
 
-variable "organization_id" {
-  description = "Your Scaleway Organization ID"
+variable "project_id" {
+  description = "Your Scaleway Project ID (null = provider default project)"
   type        = string
-}
-
-variable "project_name" {
-  description = "Your Scaleway Project name"
-  type        = string
+  default     = null
 }
 
 # ==============================================================================
@@ -39,101 +35,93 @@ provider "scaleway" {
 module "dns" {
   source = "../../"
 
-  # Project configuration (lookup by name)
-  organization_id = var.organization_id
-  project_name    = var.project_name
+  # Project configuration
+  project_id = var.project_id
 
   # Zone configuration
   domain      = "test.net"
   subdomain   = "staging"
   create_zone = true
 
-  records = [
+  records = {
     # -------------------------------------------------------------------------
     # Standard Records
     # -------------------------------------------------------------------------
 
     # Root A record for the zone
-    {
-      name = ""
+    root = {
       type = "A"
       data = "93.184.216.34"
       ttl  = 3600
-    },
+    }
 
     # WWW CNAME pointing to root
-    {
+    www = {
       name = "www"
       type = "CNAME"
       data = "staging.example.com."
-    },
+    }
 
     # Mail server with priority
-    {
-      name     = ""
+    mx = {
       type     = "MX"
       data     = "mail.example.com."
       priority = 10
       ttl      = 3600
-    },
+    }
 
     # Backup mail server
-    {
-      name     = ""
+    mx_backup = {
       type     = "MX"
       data     = "mail-backup.example.com."
       priority = 20
       ttl      = 3600
-    },
+    }
 
     # SPF record for email authentication
-    {
-      name = ""
+    spf = {
       type = "TXT"
       data = "v=spf1 include:_spf.example.com ~all"
-    },
+    }
 
     # CAA record for certificate authority authorization
-    {
-      name = ""
+    caa = {
       type = "CAA"
       data = "0 issue \"letsencrypt.org\""
-    },
+    }
 
     # -------------------------------------------------------------------------
     # Geo IP Routing
     # Route users to nearest datacenter based on location
     # -------------------------------------------------------------------------
-    {
+    cdn = {
       name = "cdn"
       type = "A"
       data = "10.0.0.1" # Default fallback IP
-      geo_ip = {
-        matches = [
-          {
-            data       = "10.0.1.1" # EU datacenter
-            continents = ["EU"]
-          },
-          {
-            data       = "10.0.2.1" # NA datacenter
-            continents = ["NA"]
-          },
-          {
-            data      = "10.0.3.1" # FR specific
-            countries = ["FR"]
-          },
-          {
-            data = "10.0.0.1" # Default (no geo match)
-          }
-        ]
-      }
-    },
+      geo_ip = [
+        {
+          data       = "10.0.1.1" # EU datacenter
+          continents = ["EU"]
+        },
+        {
+          data       = "10.0.2.1" # NA datacenter
+          continents = ["NA"]
+        },
+        {
+          data      = "10.0.3.1" # FR specific
+          countries = ["FR"]
+        },
+        {
+          data = "10.0.0.1" # Default (no geo match)
+        }
+      ]
+    }
 
     # -------------------------------------------------------------------------
     # Weighted DNS Routing
     # Return IPs in proportion to their weight
     # -------------------------------------------------------------------------
-    {
+    lb = {
       name = "lb"
       type = "A"
       data = "10.1.0.1" # Default fallback IP
@@ -151,13 +139,13 @@ module "dns" {
           weight = 10 # 10% of traffic
         }
       ]
-    },
+    }
 
     # -------------------------------------------------------------------------
     # View-based Routing
     # Return different IPs based on client subnet (internal vs external)
     # -------------------------------------------------------------------------
-    {
+    db = {
       name = "db"
       type = "A"
       data = "203.0.113.10" # Default public IP for external clients
@@ -171,13 +159,13 @@ module "dns" {
           data   = "10.100.0.11"    # Office DB IP
         }
       ]
-    },
+    }
 
     # -------------------------------------------------------------------------
     # HTTP Health-Checked DNS
     # Automatic failover based on health checks
     # -------------------------------------------------------------------------
-    {
+    api = {
       name = "api"
       type = "A"
       data = "10.2.0.1" # Default fallback IP
@@ -188,5 +176,5 @@ module "dns" {
         strategy     = "hashed" # Consistent hashing for session affinity
       }
     }
-  ]
+  }
 }

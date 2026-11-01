@@ -22,15 +22,15 @@
 # Domain Registration
 # ------------------------------------------------------------------------------
 # Registers a new domain with Scaleway Domains.
-# Set register_domain = true and provide registration details.
+# Set registration to enable it (null disables it).
 # ==============================================================================
 
 resource "scaleway_domain_registration" "this" {
-  count = var.register_domain ? 1 : 0
+  count = var.registration != null ? 1 : 0
 
   domain_names      = [var.domain]
   duration_in_years = var.registration.duration_in_years
-  project_id        = local.project_id
+  project_id        = var.project_id
   auto_renew        = var.registration.auto_renew
   dnssec            = var.registration.dnssec
 
@@ -66,6 +66,40 @@ resource "scaleway_domain_registration" "this" {
 
         content {
           mode = extension_fr.value.mode
+
+          dynamic "individual_info" {
+            for_each = extension_fr.value.individual_info != null ? [extension_fr.value.individual_info] : []
+
+            content {
+              whois_opt_in = individual_info.value.whois_opt_in
+            }
+          }
+
+          dynamic "association_info" {
+            for_each = extension_fr.value.association_info != null ? [extension_fr.value.association_info] : []
+
+            content {
+              publication_jo      = association_info.value.publication_jo
+              publication_jo_page = association_info.value.publication_jo_page
+            }
+          }
+
+          dynamic "duns_info" {
+            for_each = extension_fr.value.duns_info != null ? [extension_fr.value.duns_info] : []
+
+            content {
+              duns_id  = duns_info.value.duns_id
+              local_id = duns_info.value.local_id
+            }
+          }
+
+          dynamic "trademark_info" {
+            for_each = extension_fr.value.trademark_info != null ? [extension_fr.value.trademark_info] : []
+
+            content {
+              trademark_inpi = trademark_info.value.trademark_inpi
+            }
+          }
         }
       }
 
@@ -81,17 +115,6 @@ resource "scaleway_domain_registration" "this" {
   }
 }
 
-# The provider has no administrative/technical contact arguments (computed only).
-check "registration_contact_ids_ignored" {
-  assert {
-    condition = var.registration == null || (
-      var.registration.administrative_contact_id == null &&
-      var.registration.technical_contact_id == null
-    )
-    error_message = "registration.administrative_contact_id and registration.technical_contact_id are deprecated and ignored: the Scaleway provider cannot set these contacts."
-  }
-}
-
 # ==============================================================================
 # DNS Zone
 # ------------------------------------------------------------------------------
@@ -104,7 +127,7 @@ resource "scaleway_domain_zone" "this" {
 
   domain     = var.domain
   subdomain  = var.subdomain
-  project_id = local.project_id
+  project_id = var.project_id
 }
 
 # ==============================================================================
@@ -115,7 +138,7 @@ resource "scaleway_domain_zone" "this" {
 # ==============================================================================
 
 resource "scaleway_domain_record" "this" {
-  for_each = local.records_map
+  for_each = var.records
 
   dns_zone = local.dns_zone
   name     = each.value.name
@@ -136,7 +159,7 @@ resource "scaleway_domain_record" "this" {
 
     content {
       dynamic "matches" {
-        for_each = geo_ip.value.matches
+        for_each = geo_ip.value
 
         content {
           data       = matches.value.data

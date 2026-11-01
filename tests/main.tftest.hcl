@@ -1,141 +1,64 @@
 mock_provider "scaleway" {}
 
-override_data {
-  target = data.scaleway_account_project.this
-  values = {
-    id = "11111111-1111-1111-1111-111111111111"
-  }
-}
-
 variables {
   domain = "example.com"
 }
 
-run "no_project_resolved" {
+run "defaults_plan_nothing" {
+  command = plan
+
+  assert {
+    condition     = length(scaleway_domain_zone.this) == 0 && length(scaleway_domain_registration.this) == 0 && length(scaleway_domain_record.this) == 0
+    error_message = "Nothing must be planned with only a domain"
+  }
+
+  assert {
+    condition     = output.dns_zone == "example.com" && output.registration_id == null && output.zone_id == null && length(output.records) == 0
+    error_message = "Outputs must be null or empty when every feature is disabled, dns_zone set from the inputs"
+  }
+}
+
+run "project_id_applied" {
   command = plan
 
   variables {
     create_zone = true
-    records = [
-      { name = "", type = "A", data = "93.184.216.34" },
-      { name = "www", type = "CNAME", data = "example.com." },
-    ]
+    project_id  = "22222222-2222-2222-2222-222222222222"
   }
 
   assert {
-    condition     = output.project_id == null
-    error_message = "project_id must be null when nothing resolves a project"
+    condition     = scaleway_domain_zone.this[0].project_id == "22222222-2222-2222-2222-222222222222"
+    error_message = "The zone must carry project_id"
+  }
+}
+
+run "project_id_null_accepted" {
+  command = plan
+
+  variables {
+    create_zone = true
   }
 
   assert {
-    condition     = length(scaleway_domain_zone.this) == 1 && length(scaleway_domain_registration.this) == 0
-    error_message = "Only the zone must be planned"
-  }
-
-  assert {
-    condition     = toset(keys(scaleway_domain_record.this)) == toset(["A_@_0", "CNAME_www_1"])
-    error_message = "Record keys must be <type>_<name>_<index>"
+    condition     = length(scaleway_domain_zone.this) == 1
+    error_message = "The zone must be planned without project_id"
   }
 }
 
-run "project_id_given" {
+run "project_id_invalid_rejected" {
   command = plan
 
   variables {
-    project_id = "22222222-2222-2222-2222-222222222222"
+    project_id = "my-project"
   }
 
-  assert {
-    condition     = output.project_id == "22222222-2222-2222-2222-222222222222"
-    error_message = "project_id output must equal the input"
-  }
-
-  assert {
-    condition     = length(data.scaleway_account_project.this) == 0
-    error_message = "No project lookup expected when project_id is set"
-  }
-}
-
-run "project_lookup_by_name" {
-  command = plan
-
-  variables {
-    organization_id = "33333333-3333-3333-3333-333333333333"
-    project_name    = "my-project"
-  }
-
-  assert {
-    condition     = output.project_id == "11111111-1111-1111-1111-111111111111"
-    error_message = "project_id must come from the lookup"
-  }
-}
-
-run "project_name_without_organization" {
-  command = plan
-
-  variables {
-    project_name = "my-project"
-  }
-
-  assert {
-    condition     = length(data.scaleway_account_project.this) == 0
-    error_message = "No lookup expected without organization_id"
-  }
-}
-
-run "project_name_single_letter_accepted" {
-  command = plan
-
-  variables {
-    project_name = "a"
-  }
-}
-
-run "project_name_single_uppercase_rejected" {
-  command = plan
-
-  variables {
-    project_name = "A"
-  }
-
-  expect_failures = [var.project_name]
-}
-
-run "project_name_single_digit_rejected" {
-  command = plan
-
-  variables {
-    project_name = "1"
-  }
-
-  expect_failures = [var.project_name]
-}
-
-run "project_name_invalid_rejected" {
-  command = plan
-
-  variables {
-    project_name = "My_Project"
-  }
-
-  expect_failures = [var.project_name]
-}
-
-run "register_domain_without_registration_rejected" {
-  command = plan
-
-  variables {
-    register_domain = true
-  }
-
-  expect_failures = [var.register_domain]
+  expect_failures = [var.project_id]
 }
 
 run "registration_planned" {
   command = plan
 
   variables {
-    register_domain = true
     registration = {
       owner_contact_id = "contact-id"
     }
@@ -143,7 +66,7 @@ run "registration_planned" {
 
   assert {
     condition     = length(scaleway_domain_registration.this) == 1
-    error_message = "One registration expected"
+    error_message = "One registration expected when registration is set"
   }
 
   assert {
@@ -152,25 +75,49 @@ run "registration_planned" {
   }
 }
 
-run "registration_contact_ids_ignored_warns" {
+run "registration_absent_when_null" {
   command = plan
 
   variables {
-    register_domain = true
+    registration = null
+  }
+
+  assert {
+    condition     = length(scaleway_domain_registration.this) == 0 && output.registration_id == null
+    error_message = "No registration expected when registration is null"
+  }
+}
+
+run "registration_project_id_applied" {
+  command = plan
+
+  variables {
+    project_id = "22222222-2222-2222-2222-222222222222"
     registration = {
-      owner_contact_id          = "contact-id"
-      administrative_contact_id = "admin-id"
+      owner_contact_id = "contact-id"
     }
   }
 
-  expect_failures = [check.registration_contact_ids_ignored]
+  assert {
+    condition     = scaleway_domain_registration.this[0].project_id == "22222222-2222-2222-2222-222222222222"
+    error_message = "The registration must carry project_id"
+  }
+}
+
+run "registration_without_owner_rejected" {
+  command = plan
+
+  variables {
+    registration = {}
+  }
+
+  expect_failures = [var.registration]
 }
 
 run "registration_options_default_false" {
   command = plan
 
   variables {
-    register_domain = true
     registration = {
       owner_contact_id = "contact-id"
     }
@@ -186,7 +133,6 @@ run "registration_options_enabled" {
   command = plan
 
   variables {
-    register_domain = true
     registration = {
       owner_contact_id = "contact-id"
       auto_renew       = true
@@ -205,7 +151,7 @@ run "registration_ds_record_null_when_disabled" {
 
   assert {
     condition     = output.registration_ds_record == null
-    error_message = "registration_ds_record must be null when register_domain is false"
+    error_message = "registration_ds_record must be null when registration is null"
   }
 }
 
@@ -213,7 +159,6 @@ run "registration_ds_record_set_when_enabled" {
   command = apply
 
   variables {
-    register_domain = true
     registration = {
       owner_contact_id = "contact-id"
     }
@@ -221,6 +166,267 @@ run "registration_ds_record_set_when_enabled" {
 
   assert {
     condition     = output.registration_ds_record != null
-    error_message = "registration_ds_record must carry the registration value when register_domain is true"
+    error_message = "registration_ds_record must carry the registration value when registration is set"
+  }
+}
+
+run "extension_fr_duns_info_rendered" {
+  command = plan
+
+  variables {
+    registration = {
+      owner_contact = {
+        legal_form   = "company"
+        firstname    = "A"
+        lastname     = "B"
+        email        = "a.b@example.com"
+        phone_number = "+33111111111"
+
+        address_line_1 = "1 Rue X"
+        zip            = "75001"
+        city           = "Paris"
+        country        = "FR"
+
+        extension_fr = {
+          mode      = "company"
+          duns_info = { duns_id = "123456789" }
+        }
+      }
+    }
+  }
+
+  assert {
+    condition = (
+      length(scaleway_domain_registration.this[0].owner_contact[0].extension_fr) == 1 &&
+      length(scaleway_domain_registration.this[0].owner_contact[0].extension_fr[0].duns_info) == 1 &&
+      scaleway_domain_registration.this[0].owner_contact[0].extension_fr[0].duns_info[0].duns_id == "123456789" &&
+      length(scaleway_domain_registration.this[0].owner_contact[0].extension_fr[0].association_info) == 0 &&
+      length(scaleway_domain_registration.this[0].owner_contact[0].extension_fr[0].individual_info) == 0 &&
+      length(scaleway_domain_registration.this[0].owner_contact[0].extension_fr[0].trademark_info) == 0
+    )
+    error_message = "extension_fr must carry exactly the duns_info block"
+  }
+}
+
+run "extension_fr_mode_only_has_no_nested_block" {
+  command = plan
+
+  variables {
+    registration = {
+      owner_contact = {
+        legal_form   = "individual"
+        firstname    = "A"
+        lastname     = "B"
+        email        = "a.b@example.com"
+        phone_number = "+33111111111"
+
+        address_line_1 = "1 Rue X"
+        zip            = "75001"
+        city           = "Paris"
+        country        = "FR"
+
+        extension_fr = { mode = "individual" }
+      }
+    }
+  }
+
+  assert {
+    condition = (
+      length(scaleway_domain_registration.this[0].owner_contact[0].extension_fr) == 1 &&
+      length(scaleway_domain_registration.this[0].owner_contact[0].extension_fr[0].duns_info) == 0 &&
+      length(scaleway_domain_registration.this[0].owner_contact[0].extension_fr[0].association_info) == 0 &&
+      length(scaleway_domain_registration.this[0].owner_contact[0].extension_fr[0].individual_info) == 0 &&
+      length(scaleway_domain_registration.this[0].owner_contact[0].extension_fr[0].trademark_info) == 0
+    )
+    error_message = "extension_fr with only a mode must carry no nested block"
+  }
+}
+
+run "records_keys_are_addresses" {
+  command = plan
+
+  variables {
+    create_zone = true
+    records = {
+      root = { type = "A", data = "93.184.216.34" }
+      www  = { name = "www", type = "CNAME", data = "example.com." }
+    }
+  }
+
+  assert {
+    condition     = toset(keys(scaleway_domain_record.this)) == toset(["root", "www"])
+    error_message = "Record keys must be the keys of the records map"
+  }
+
+  assert {
+    condition     = scaleway_domain_record.this["root"].name == "" && scaleway_domain_record.this["root"].ttl == 3600
+    error_message = "name must default to the zone root and ttl to 3600"
+  }
+}
+
+run "records_order_independent" {
+  command = plan
+
+  variables {
+    records = {
+      www  = { name = "www", type = "CNAME", data = "example.com." }
+      root = { type = "A", data = "93.184.216.34" }
+    }
+  }
+
+  assert {
+    condition     = toset(keys(scaleway_domain_record.this)) == toset(["root", "www"])
+    error_message = "Keys must not depend on the order of the entries"
+  }
+}
+
+run "records_custom_ttl_and_priority" {
+  command = plan
+
+  variables {
+    records = {
+      mx = { type = "MX", data = "mail.example.com.", priority = 10, ttl = 300 }
+    }
+  }
+
+  assert {
+    condition     = scaleway_domain_record.this["mx"].ttl == 300 && scaleway_domain_record.this["mx"].priority == 10
+    error_message = "ttl and priority must be forwarded"
+  }
+}
+
+run "records_invalid_type_rejected" {
+  command = plan
+
+  variables {
+    records = {
+      bad = { type = "SOA", data = "x" }
+    }
+  }
+
+  expect_failures = [var.records]
+}
+
+run "records_ttl_out_of_range_rejected" {
+  command = plan
+
+  variables {
+    records = {
+      low = { type = "A", data = "10.0.0.1", ttl = 30 }
+    }
+  }
+
+  expect_failures = [var.records]
+}
+
+run "records_mx_without_priority_rejected" {
+  command = plan
+
+  variables {
+    records = {
+      mx = { type = "MX", data = "mail.example.com." }
+    }
+  }
+
+  expect_failures = [var.records]
+}
+
+run "records_http_service_strategy_rejected" {
+  command = plan
+
+  variables {
+    records = {
+      api = {
+        type = "A"
+        data = "10.0.0.1"
+        http_service = {
+          ips          = ["10.0.0.1"]
+          must_contain = "ok"
+          url          = "http://example.com/health"
+          strategy     = "first"
+        }
+      }
+    }
+  }
+
+  expect_failures = [var.records]
+}
+
+run "records_geo_ip_list_renders_matches" {
+  command = plan
+
+  variables {
+    records = {
+      cdn = {
+        name = "cdn"
+        type = "A"
+        data = "10.0.0.1"
+        geo_ip = [
+          { data = "10.0.1.1", continents = ["EU"] },
+          { data = "10.0.3.1", countries = ["FR"] },
+        ]
+      }
+    }
+  }
+
+  assert {
+    condition     = length(scaleway_domain_record.this["cdn"].geo_ip) == 1 && length(scaleway_domain_record.this["cdn"].geo_ip[0].matches) == 2
+    error_message = "One geo_ip block with one matches block per element expected"
+  }
+}
+
+run "records_view_renders_blocks" {
+  command = plan
+
+  variables {
+    records = {
+      db = {
+        name = "db"
+        type = "A"
+        data = "203.0.113.10"
+        view = [
+          { subnet = "10.0.0.0/8", data = "10.100.0.10" },
+          { subnet = "192.168.0.0/16", data = "10.100.0.11" },
+        ]
+      }
+    }
+  }
+
+  assert {
+    condition     = length(scaleway_domain_record.this["db"].view) == 2
+    error_message = "One view block per entry expected"
+  }
+}
+
+run "records_view_subnet_not_cidr_rejected" {
+  command = plan
+
+  variables {
+    records = {
+      db = {
+        type = "A"
+        data = "203.0.113.10"
+        view = [{ subnet = "10.0.0.0", data = "10.100.0.10" }]
+      }
+    }
+  }
+
+  expect_failures = [var.records]
+}
+
+run "records_output_keys" {
+  command = apply
+
+  variables {
+    create_zone = true
+    records = {
+      root = { type = "A", data = "93.184.216.34" }
+      www  = { name = "www", type = "CNAME", data = "example.com." }
+    }
+  }
+
+  assert {
+    condition     = toset(keys(output.records)) == toset(["root", "www"]) && output.records["root"].id != null && output.records["www"].fqdn != null
+    error_message = "records must be keyed like the input and carry id and fqdn"
   }
 }
