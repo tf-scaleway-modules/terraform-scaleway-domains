@@ -2,11 +2,6 @@
 # Outputs
 # ==============================================================================
 
-output "project_id" {
-  description = "The resolved project ID"
-  value       = module.dns.project_id
-}
-
 output "dns_zone" {
   description = "The DNS zone being managed"
   value       = module.dns.dns_zone
@@ -29,5 +24,5 @@ output "records" {
 
 output "record_fqdns" {
   description = "FQDNs for all records"
-  value       = module.dns.record_fqdns
+  value       = { for key, record in module.dns.records : key => record.fqdn }
 }
