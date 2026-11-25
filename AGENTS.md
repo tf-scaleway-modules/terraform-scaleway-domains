@@ -1,7 +1,7 @@
 # AGENTS.md — terraform-modules-scaleway-domains
 
 ## Project
-OpenTofu/Terraform module: Scaleway Domains registration, DNS zone and DNS records
+OpenTofu (>= 1.11.0) and Terraform (>= 1.11.0) module: Scaleway Domains registration, DNS zone and DNS records
 (standard and dynamic DNS), each usable independently. Published on GitLab at
 `gitlab.com/leminnov/terraform/modules/scaleway-domains`;
 consumers pin a git tag. Planning uses OpenSpec (`openspec/`). Engineering
@@ -67,7 +67,7 @@ Never deviate silently: add a `# DEVIATION(<spec-id>): <reason>` comment and lis
 in your summary.
 
 ## Commands
-- Format / validate: `tofu fmt -recursive`, `tofu init -backend=false && tofu validate`, `tflint --recursive`
+- Format / validate: `tofu fmt -recursive`, `tofu init -backend=false && tofu validate`, `terraform init -backend=false && terraform validate`, `tflint --recursive`
 - Tests: `tofu test` (unit tests in `tests/main.tftest.hcl`, mock provider, no account)
 - Everything incl. README regeneration: `pre-commit run -a`
 - Changelog: `mise run changelog` (git-cliff, at release)

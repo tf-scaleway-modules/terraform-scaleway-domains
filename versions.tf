@@ -5,7 +5,7 @@
 # ╚══════════════════════════════════════════════════════════════════════════════╝
 
 terraform {
-  required_version = ">= 1.10.7" # OpenTofu 1.10.7 or Terraform 1.10.7+
+  required_version = ">= 1.11.0" # OpenTofu or Terraform 1.11.0+
 
   required_providers {
     scaleway = {

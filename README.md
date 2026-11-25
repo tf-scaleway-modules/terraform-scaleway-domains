@@ -22,7 +22,7 @@ A **production-ready** Terraform/OpenTofu module for managing Scaleway domain re
 
 ### Prerequisites
 
-- Terraform >= 1.10 or OpenTofu >= 1.10
+- OpenTofu >= 1.11.0 or Terraform >= 1.11.0
 - Scaleway account with DNS API access
 - Domain registered or transferred to Scaleway
 
@@ -259,14 +259,14 @@ moved {
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.10.7 |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.11.0 |
 | <a name="requirement_scaleway"></a> [scaleway](#requirement\_scaleway) | ~> 2.89 |
 
 ## Providers
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="provider_scaleway"></a> [scaleway](#provider\_scaleway) | ~> 2.89 |
 
 ## Modules
@@ -276,7 +276,7 @@ No modules.
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
 | [scaleway_domain_record.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/domain_record) | resource |
 | [scaleway_domain_registration.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/domain_registration) | resource |
 | [scaleway_domain_zone.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/domain_zone) | resource |
@@ -284,7 +284,7 @@ No modules.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_create_zone"></a> [create\_zone](#input\_create\_zone) | Whether to create the DNS zone.<br/><br/>Set to true to create a new DNS zone for the domain/subdomain.<br/>Set to false if the zone already exists and you only want to manage records. | `bool` | `false` | no |
 | <a name="input_domain"></a> [domain](#input\_domain) | The root domain name for DNS management.<br/><br/>This is the main domain where DNS zones and records will be created.<br/>The domain can be registered via this module (registration)<br/>or must already be registered/transferred to Scaleway.<br/><br/>Examples: "example.com", "mycompany.io" | `string` | n/a | yes |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | Scaleway Project ID applied to the domain registration and the DNS zone.<br/><br/>Leave null to use the default project of the provider configuration.<br/><br/>Format: UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) | `string` | `null` | no |
@@ -295,7 +295,7 @@ No modules.
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_dns_zone"></a> [dns\_zone](#output\_dns\_zone) | The full DNS zone name (domain or subdomain.domain). |
 | <a name="output_records"></a> [records](#output\_records) | Map of DNS records created by this module, keyed like the records input. |
 | <a name="output_registration_ds_record"></a> [registration\_ds\_record](#output\_registration\_ds\_record) | The DNSSEC DS record to publish at the registrar; empty until dnssec is enabled (null if registration = null). |
@@ -352,7 +352,7 @@ This module is provided "as is" without warranty. Always test in non-production 
 
 [apache]: https://opensource.org/licenses/Apache-2.0
 [apache-shield]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
-[terraform-badge]: https://img.shields.io/badge/Terraform-%3E%3D1.10-623CE4
+[terraform-badge]: https://img.shields.io/badge/Terraform-%3E%3D1.11.0-623CE4
 [terraform-url]: https://www.terraform.io
 [scaleway-badge]: https://img.shields.io/badge/Scaleway%20Provider-%3E%3D2.89-4f0599
 [scaleway-url]: https://registry.terraform.io/providers/scaleway/scaleway/
