@@ -62,7 +62,7 @@ variable "registration" {
 
     owner_contact = optional(object({
       # Legal information
-      legal_form   = string                 # individual, company, association, etc.
+      legal_form   = string                 # individual, corporate, association or other
       firstname    = string                 # First name
       lastname     = string                 # Last name
       company_name = optional(string, null) # Company name (if applicable)
@@ -91,7 +91,7 @@ variable "registration" {
 
       # Extensions for specific TLDs
       extension_fr = optional(object({
-        mode = optional(string) # individual, company, trademark, etc.
+        mode = optional(string) # individual, company_identification_code, duns, local, association or trademark
 
         individual_info = optional(object({
           whois_opt_in = optional(bool) # Publish contact in WHOIS
@@ -130,6 +130,22 @@ variable "registration" {
       var.registration.owner_contact != null
     )
     error_message = "Either owner_contact_id or owner_contact must be provided for domain registration."
+  }
+
+  validation {
+    condition = (
+      try(var.registration.owner_contact.legal_form, null) == null ||
+      contains(["individual", "corporate", "association", "other"], try(var.registration.owner_contact.legal_form, ""))
+    )
+    error_message = "owner_contact.legal_form must be one of: individual, corporate, association, other."
+  }
+
+  validation {
+    condition = (
+      try(var.registration.owner_contact.extension_fr.mode, null) == null ||
+      contains(["individual", "company_identification_code", "duns", "local", "association", "trademark"], try(var.registration.owner_contact.extension_fr.mode, ""))
+    )
+    error_message = "owner_contact.extension_fr.mode must be one of: individual, company_identification_code, duns, local, association, trademark."
   }
 }
 

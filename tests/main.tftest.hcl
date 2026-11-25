@@ -176,7 +176,7 @@ run "extension_fr_duns_info_rendered" {
   variables {
     registration = {
       owner_contact = {
-        legal_form   = "company"
+        legal_form   = "corporate"
         firstname    = "A"
         lastname     = "B"
         email        = "a.b@example.com"
@@ -188,7 +188,7 @@ run "extension_fr_duns_info_rendered" {
         country        = "FR"
 
         extension_fr = {
-          mode      = "company"
+          mode      = "duns"
           duns_info = { duns_id = "123456789" }
         }
       }
@@ -240,6 +240,55 @@ run "extension_fr_mode_only_has_no_nested_block" {
     )
     error_message = "extension_fr with only a mode must carry no nested block"
   }
+}
+
+# Provider >= 2.93.0 rejects these values; the module rejects them on every version.
+run "legal_form_rejects_unknown_value" {
+  command = plan
+
+  variables {
+    registration = {
+      owner_contact = {
+        legal_form   = "company"
+        firstname    = "A"
+        lastname     = "B"
+        email        = "a.b@example.com"
+        phone_number = "+33111111111"
+
+        address_line_1 = "1 Rue X"
+        zip            = "75001"
+        city           = "Paris"
+        country        = "FR"
+      }
+    }
+  }
+
+  expect_failures = [var.registration]
+}
+
+run "extension_fr_mode_rejects_unknown_value" {
+  command = plan
+
+  variables {
+    registration = {
+      owner_contact = {
+        legal_form   = "corporate"
+        firstname    = "A"
+        lastname     = "B"
+        email        = "a.b@example.com"
+        phone_number = "+33111111111"
+
+        address_line_1 = "1 Rue X"
+        zip            = "75001"
+        city           = "Paris"
+        country        = "FR"
+
+        extension_fr = { mode = "company" }
+      }
+    }
+  }
+
+  expect_failures = [var.registration]
 }
 
 run "records_keys_are_addresses" {
