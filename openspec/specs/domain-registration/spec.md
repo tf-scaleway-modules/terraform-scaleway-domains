@@ -35,6 +35,17 @@ A non-null `registration` SHALL provide `owner_contact_id` (an existing contact)
 - **WHEN** `owner_contact` omits `email`
 - **THEN** the plan fails on the object type
 
+### Requirement: Owner contact enumerations
+An inline `owner_contact.legal_form` SHALL be one of `individual`, `corporate`, `association` or `other`, and `owner_contact.extension_fr.mode`, when set, SHALL be one of `individual`, `company_identification_code`, `duns`, `local`, `association` or `trademark`, the values the provider accepts.
+
+#### Scenario: Unknown legal form
+- **WHEN** `owner_contact.legal_form = "company"`
+- **THEN** the plan fails with "owner_contact.legal_form must be one of: individual, corporate, association, other."
+
+#### Scenario: Unknown .fr mode
+- **WHEN** `owner_contact.extension_fr = { mode = "company" }`
+- **THEN** the plan fails with "owner_contact.extension_fr.mode must be one of: individual, company_identification_code, duns, local, association, trademark."
+
 ### Requirement: Optional contact attributes
 An inline `owner_contact` SHALL accept the optional attributes `company_name`, `address_line_2`, `state`, `vat_identification_code`, `company_identification_code`, `email_alt` (default `null`), `whois_opt_in` (default `false`), `lang` (default `"en_US"`) and `resale` (default `false`), plus an `extension_fr` object (`mode`) and an `extension_eu` object (`european_citizenship`) whose blocks SHALL be emitted only when set.
 
@@ -91,7 +102,7 @@ The module SHALL create one `scaleway_domain_registration` named `this` only whe
 `owner_contact.extension_fr` SHALL accept `mode` and the optional objects `individual_info` (`whois_opt_in`), `association_info` (`publication_jo`, `publication_jo_page`), `duns_info` (`duns_id`, `local_id`) and `trademark_info` (`trademark_inpi`). Each nested block SHALL be emitted only when set. The module SHALL NOT accept `code_auth_afnic_info`.
 
 #### Scenario: Company with DUNS
-- **WHEN** `extension_fr = { mode = "company", duns_info = { duns_id = "123456789" } }`
+- **WHEN** `extension_fr = { mode = "duns", duns_info = { duns_id = "123456789" } }`
 - **THEN** the owner contact carries one `extension_fr` block with one `duns_info` block and no other nested block
 
 #### Scenario: Mode only
