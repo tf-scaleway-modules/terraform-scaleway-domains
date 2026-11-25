@@ -6,15 +6,19 @@ Cross-cutting contract: supported tooling and provider, no provider or backend b
 ## Requirements
 
 ### Requirement: Supported tooling and providers
-The module SHALL declare `required_version = ">= 1.10.7"` and SHALL pin `scaleway/scaleway ~> 2.89` in `versions.tf`. It SHALL work on OpenTofu and Terraform. It SHALL NOT contain `provider {}` or `backend {}` blocks.
+The module SHALL declare a single `required_version = ">= 1.11.0"`, read by both OpenTofu and Terraform, and SHALL pin `scaleway/scaleway ~> 2.89` in `versions.tf`. The examples under `examples/` SHALL declare the same `required_version` and the same scaleway constraint as the root. It SHALL work on OpenTofu and Terraform. It SHALL NOT contain `provider {}` or `backend {}` blocks.
 
 #### Scenario: Provider resolution
 - **WHEN** the module is initialised
 - **THEN** the scaleway provider resolves to a 2.x release at or above 2.89 and no provider or backend configuration comes from the module
 
 #### Scenario: Older toolchain
-- **WHEN** the module is used with a Terraform or OpenTofu release older than 1.10.7
+- **WHEN** the module is used with a Terraform or OpenTofu release older than 1.11.0
 - **THEN** initialisation fails on the `required_version` constraint
+
+#### Scenario: Both tools validate
+- **WHEN** `tofu validate` and `terraform validate` run in the root and in each example
+- **THEN** both succeed
 
 ### Requirement: Inputs and defaults
 The module SHALL expose the inputs `project_id` (string, default `null`), `create_zone` (bool, default `false`), `registration` (object, default `null`), `subdomain` (string, default `""`), `records` (map of objects, default `{}`) and `domain` (string, required). It SHALL NOT expose `organization_id`, `project_name` or `register_domain`. It SHALL create no managed resource until `registration`, `create_zone` or `records` asks for one.
