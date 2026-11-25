@@ -2,7 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.1] - 2026-11-25
+## [3.0.0] - 2026-11-25
+- Require OpenTofu or Terraform 1.11.0 and validate with both in CI
+
+BREAKING: required_version is raised from >= 1.10.7 to >= 1.11.0.
+Upgrade note: consumers need OpenTofu or Terraform >= 1.11.0.
+
+Pin opentofu 1.13.10 and terraform 1.17.2 in mise.toml, add the
+validate:terraform job, align the examples on the root provider
+constraint (~> 2.89), and force the tofu binary in the pre-commit
+Terraform hooks.
 - Reject owner contact legal forms and .fr modes the provider does not accept
 
 Provider 2.93.0 validates legal_form (individual, corporate, association, other) and extension_fr.mode; the module now rejects other values at plan on every provider version, and the tests no longer use the invalid "company".
