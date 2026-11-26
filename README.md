@@ -214,6 +214,94 @@ records = {
 }
 ```
 
+### Input reference
+
+#### registration
+
+Registers `domain` with Scaleway. `null` (default) registers nothing. Either `owner_contact_id` or `owner_contact` is required.
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `duration_in_years` | `number` | `1` | Registration period, 1 to 10 years. |
+| `auto_renew` | `bool` | `false` | Renew the domain automatically before it expires. The owner is billed at each renewal. |
+| `dnssec` | `bool` | `false` | Enable DNSSEC. The domain's DNS must be served by Scaleway DNS (see `create_zone`) and the DS record, exposed as `registration_ds_record`, must be published at the registrar. Enabling it without Scaleway DNS can break resolution. |
+| `owner_contact_id` | `string` | `null` | ID of an existing owner contact. |
+| `owner_contact` | `object` | `null` | Owner contact details, see below. |
+
+`auto_renew` and `dnssec` have no `enable_` prefix because the attributes of this object mirror the provider argument names.
+
+`owner_contact` attributes:
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `legal_form` | `string` | required | Legal form, validated: `individual`, `corporate`, `association` or `other`. |
+| `firstname` | `string` | required | First name. |
+| `lastname` | `string` | required | Last name. |
+| `company_name` | `string` | `null` | Company name, if applicable. |
+| `email` | `string` | required | Email address. |
+| `phone_number` | `string` | required | Phone number with country code, for example `+33123456789`. |
+| `address_line_1` | `string` | required | Street address. |
+| `address_line_2` | `string` | `null` | Additional address information. |
+| `zip` | `string` | required | Postal or ZIP code. |
+| `city` | `string` | required | City. |
+| `state` | `string` | `null` | State or province. |
+| `country` | `string` | required | ISO country code, for example `FR` or `US`. |
+| `vat_identification_code` | `string` | `null` | VAT number (required for companies). |
+| `company_identification_code` | `string` | `null` | Company registration number (required for companies). |
+| `whois_opt_in` | `bool` | `false` | Opt in to WHOIS publication. |
+| `email_alt` | `string` | `null` | Alternative email address. |
+| `lang` | `string` | `"en_US"` | Contact language. |
+| `resale` | `bool` | `false` | Reseller flag. |
+| `extension_fr` | `object` | `null` | `.fr` details, see below. |
+| `extension_eu` | `object` | `null` | `.eu` details: `european_citizenship` (`string`, EU citizenship country). |
+
+`owner_contact.extension_fr` carries the `.fr` details: `mode` plus one of `individual_info`, `association_info`, `duns_info` or `trademark_info`.
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `mode` | `string` | Mode, validated: `individual`, `company_identification_code`, `duns`, `local`, `association` or `trademark`. |
+| `individual_info.whois_opt_in` | `bool` | Publish the contact in WHOIS. |
+| `association_info.publication_jo` | `string` | Journal officiel publication date. |
+| `association_info.publication_jo_page` | `number` | Journal officiel page. |
+| `duns_info.duns_id` | `string` | D-U-N-S number. |
+| `duns_info.local_id` | `string` | Local company ID. |
+| `trademark_info.trademark_inpi` | `string` | INPI trademark number. |
+
+#### records
+
+Map of DNS records to create in the zone, keyed by a name of your choice (default `{}`). The key becomes the resource address (`scaleway_domain_record.this["<key>"]`): keep it stable, and reorder or add entries freely.
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `type` | `string` | required | One of `A`, `AAAA`, `MX`, `CNAME`, `DNAME`, `ALIAS`, `NS`, `PTR`, `SRV`, `TXT`, `TLSA`, `CAA`. |
+| `data` | `string` | required | Record data. For dynamic DNS it is the fallback value. |
+| `name` | `string` | `""` | Record name; the empty string is the zone root. |
+| `ttl` | `number` | `3600` | Time to live in seconds, 60 to 86400. |
+| `priority` | `number` | `null` | Priority, required for `MX` and `SRV` records. |
+| `geo_ip` | `list(object)` | `null` | Route traffic by user location, see below. |
+| `weighted` | `list(object)` | `null` | Return IPs in proportion to their weight, see below. |
+| `view` | `list(object)` | `null` | Return different IPs by client subnet, see below. |
+| `http_service` | `object` | `null` | Health-checked DNS with automatic failover, see below. |
+
+Dynamic DNS attributes (examples in [Advanced Features](#advanced-features)):
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `geo_ip[*].data` | `string` | required | IP to return for this match. |
+| `geo_ip[*].countries` | `list(string)` | `null` | Country codes, for example `FR`, `US`, `GB`. |
+| `geo_ip[*].continents` | `list(string)` | `null` | Continent codes, for example `EU`, `NA`, `AS`. |
+| `weighted[*].ip` | `string` | required | Target IP address. |
+| `weighted[*].weight` | `number` | required | Weight for the traffic distribution. |
+| `view[*].subnet` | `string` | required | Client subnet in CIDR notation, for example `10.0.0.0/8`. |
+| `view[*].data` | `string` | required | IP to return for this subnet. |
+| `http_service.ips` | `list(string)` | required | IPs to health check. |
+| `http_service.must_contain` | `string` | required | String that must be in the response. |
+| `http_service.url` | `string` | required | Health check URL. |
+| `http_service.strategy` | `string` | required | One of `random`, `hashed` or `all`. |
+| `http_service.user_agent` | `string` | `null` | Custom user agent. |
+
+`geo_ip` is one block with one match per list element.
+
 ## Upgrading from v1 to v2
 
 v2 requires the scaleway provider `~> 2.89`. Every caller changes its inputs:
@@ -285,12 +373,12 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_create_zone"></a> [create\_zone](#input\_create\_zone) | Whether to create the DNS zone.<br/><br/>Set to true to create a new DNS zone for the domain/subdomain.<br/>Set to false if the zone already exists and you only want to manage records. | `bool` | `false` | no |
-| <a name="input_domain"></a> [domain](#input\_domain) | The root domain name for DNS management.<br/><br/>This is the main domain where DNS zones and records will be created.<br/>The domain can be registered via this module (registration)<br/>or must already be registered/transferred to Scaleway.<br/><br/>Examples: "example.com", "mycompany.io" | `string` | n/a | yes |
-| <a name="input_project_id"></a> [project\_id](#input\_project\_id) | Scaleway Project ID applied to the domain registration and the DNS zone.<br/><br/>Leave null to use the default project of the provider configuration.<br/><br/>Format: UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) | `string` | `null` | no |
-| <a name="input_records"></a> [records](#input\_records) | DNS records to create in the zone, keyed by a name of your choice.<br/><br/>The key becomes the resource address (scaleway\_domain\_record.this["<key>"]):<br/>keep it stable, and reorder or add entries freely.<br/><br/>Each record supports standard DNS attributes plus Scaleway's dynamic DNS features:<br/>- geo\_ip: Route traffic based on user location (list of matches)<br/>- weighted: Return IPs in proportion to their weight<br/>- view: Return different IPs based on client subnet (CIDR)<br/>- http\_service: Health-checked DNS with automatic failover<br/><br/>Record Types: A, AAAA, MX, CNAME, DNAME, ALIAS, NS, PTR, SRV, TXT, TLSA, CAA<br/><br/>data is required on every record; for dynamic DNS it is the fallback value. | <pre>map(object({<br/>    # Core record attributes<br/>    type     = string                 # DNS record type<br/>    data     = string                 # Record data (fallback value for dynamic DNS)<br/>    name     = optional(string, "")   # Record name (empty string for root)<br/>    ttl      = optional(number, 3600) # Time to live in seconds<br/>    priority = optional(number, null) # Priority (for MX, SRV records)<br/><br/>    # Dynamic DNS: Geo IP routing (one geo_ip block, one matches block per element)<br/>    geo_ip = optional(list(object({<br/>      data       = string                 # IP to return for this match<br/>      countries  = optional(list(string)) # Country codes (FR, US, GB, etc.)<br/>      continents = optional(list(string)) # Continent codes (EU, NA, AS, etc.)<br/>    })))<br/><br/>    # Dynamic DNS: Weighted routing<br/>    weighted = optional(list(object({<br/>      ip     = string # Target IP address<br/>      weight = number # Weight for traffic distribution<br/>    })))<br/><br/>    # Dynamic DNS: View-based routing (by client subnet)<br/>    view = optional(list(object({<br/>      subnet = string # Client subnet in CIDR notation<br/>      data   = string # IP to return for this subnet<br/>    })))<br/><br/>    # Dynamic DNS: HTTP health-checked DNS<br/>    http_service = optional(object({<br/>      ips          = list(string)           # IPs to health check<br/>      must_contain = string                 # String that must be in response<br/>      url          = string                 # Health check URL<br/>      strategy     = string                 # random, hashed, or all<br/>      user_agent   = optional(string, null) # Custom user agent<br/>    }))<br/>  }))</pre> | `{}` | no |
-| <a name="input_registration"></a> [registration](#input\_registration) | Domain registration configuration.<br/><br/>Set to enable the registration of var.domain; null (default) registers<br/>nothing. Configures the registration period, the owner contact, auto-renewal and DNSSEC.<br/><br/>auto\_renew: renew the domain automatically before it expires. The owner<br/>is billed at each renewal, so it defaults to false.<br/><br/>dnssec: enable DNSSEC. The domain's DNS must be served by Scaleway DNS<br/>(see create\_zone) and the DS record, exposed as registration\_ds\_record,<br/>must be published at the registrar. Enabling it without Scaleway DNS can<br/>break resolution, so it defaults to false.<br/><br/>owner\_contact.extension\_fr carries the .fr details: mode plus one of<br/>individual\_info, association\_info, duns\_info or trademark\_info. | <pre>object({<br/>    # Registration period<br/>    duration_in_years = optional(number, 1) # 1-10 years<br/><br/>    # DEVIATION(terraform-variables): no enable_ prefix; attributes of this object mirror provider argument names<br/>    auto_renew = optional(bool, false) # Renew automatically (billed)<br/>    dnssec     = optional(bool, false) # Enable DNSSEC (requires Scaleway DNS)<br/><br/>    # Owner contact - Required for registration<br/>    # Either provide owner_contact_id OR owner_contact details<br/>    owner_contact_id = optional(string) # ID of existing contact<br/><br/>    owner_contact = optional(object({<br/>      # Legal information<br/>      legal_form   = string                 # individual, corporate, association or other<br/>      firstname    = string                 # First name<br/>      lastname     = string                 # Last name<br/>      company_name = optional(string, null) # Company name (if applicable)<br/><br/>      # Contact information<br/>      email        = string # Email address<br/>      phone_number = string # Phone number with country code (+33...)<br/><br/>      # Address<br/>      address_line_1 = string                 # Street address<br/>      address_line_2 = optional(string, null) # Additional address info<br/>      zip            = string                 # Postal/ZIP code<br/>      city           = string                 # City<br/>      state          = optional(string, null) # State/Province<br/>      country        = string                 # ISO country code (FR, US, etc.)<br/><br/>      # Business identifiers (required for companies)<br/>      vat_identification_code     = optional(string, null) # VAT number<br/>      company_identification_code = optional(string, null) # Company registration number<br/><br/>      # Privacy and additional options<br/>      whois_opt_in = optional(bool, false)     # Opt-in to WHOIS publication<br/>      email_alt    = optional(string, null)    # Alternative email<br/>      lang         = optional(string, "en_US") # Contact language<br/>      resale       = optional(bool, false)     # Reseller flag<br/><br/>      # Extensions for specific TLDs<br/>      extension_fr = optional(object({<br/>        mode = optional(string) # individual, company_identification_code, duns, local, association or trademark<br/><br/>        individual_info = optional(object({<br/>          whois_opt_in = optional(bool) # Publish contact in WHOIS<br/>        }))<br/><br/>        association_info = optional(object({<br/>          publication_jo      = optional(string) # Journal officiel publication date<br/>          publication_jo_page = optional(number) # Journal officiel page<br/>        }))<br/><br/>        duns_info = optional(object({<br/>          duns_id  = optional(string) # D-U-N-S number<br/>          local_id = optional(string) # Local company ID<br/>        }))<br/><br/>        trademark_info = optional(object({<br/>          trademark_inpi = optional(string) # INPI trademark number<br/>        }))<br/>      }))<br/><br/>      extension_eu = optional(object({<br/>        european_citizenship = optional(string) # EU citizenship country<br/>      }))<br/>    }))<br/>  })</pre> | `null` | no |
-| <a name="input_subdomain"></a> [subdomain](#input\_subdomain) | The subdomain (zone name) to create within the domain.<br/><br/>Leave empty ("") to manage records directly on the root domain.<br/>Use a subdomain name to create a delegated zone.<br/><br/>Examples: "", "api", "staging" | `string` | `""` | no |
+| <a name="input_create_zone"></a> [create\_zone](#input\_create\_zone) | Whether to create the DNS zone for `domain` and `subdomain`. Set to `false` (default) if the zone already exists and you only manage records. | `bool` | `false` | no |
+| <a name="input_domain"></a> [domain](#input\_domain) | Root domain name for DNS management, for example `example.com`. It is registered by this module when `registration` is set, otherwise it must already be registered or transferred to Scaleway. | `string` | n/a | yes |
+| <a name="input_project_id"></a> [project\_id](#input\_project\_id) | Scaleway Project ID (UUID) applied to the domain registration and the DNS zone. `null` uses the default project of the provider configuration. | `string` | `null` | no |
+| <a name="input_records"></a> [records](#input\_records) | Map of DNS records to create in the zone, keyed by a stable name of your choice that becomes the resource address. Supports standard records and dynamic DNS (`geo_ip`, `weighted`, `view`, `http_service`). See Input reference in the README for every attribute. | <pre>map(object({<br/>    type     = string<br/>    data     = string<br/>    name     = optional(string, "")<br/>    ttl      = optional(number, 3600)<br/>    priority = optional(number, null)<br/><br/>    geo_ip = optional(list(object({<br/>      data       = string<br/>      countries  = optional(list(string))<br/>      continents = optional(list(string))<br/>    })))<br/><br/>    weighted = optional(list(object({<br/>      ip     = string<br/>      weight = number<br/>    })))<br/><br/>    view = optional(list(object({<br/>      subnet = string<br/>      data   = string<br/>    })))<br/><br/>    http_service = optional(object({<br/>      ips          = list(string)<br/>      must_contain = string<br/>      url          = string<br/>      strategy     = string<br/>      user_agent   = optional(string, null)<br/>    }))<br/>  }))</pre> | `{}` | no |
+| <a name="input_registration"></a> [registration](#input\_registration) | Domain registration of `domain`: registration period, owner contact, auto-renewal and DNSSEC. `null` (default) registers nothing. See Input reference in the README for every attribute. | <pre>object({<br/>    duration_in_years = optional(number, 1)<br/>    auto_renew        = optional(bool, false)<br/>    dnssec            = optional(bool, false)<br/>    owner_contact_id  = optional(string)<br/><br/>    owner_contact = optional(object({<br/>      legal_form                  = string<br/>      firstname                   = string<br/>      lastname                    = string<br/>      company_name                = optional(string, null)<br/>      email                       = string<br/>      phone_number                = string<br/>      address_line_1              = string<br/>      address_line_2              = optional(string, null)<br/>      zip                         = string<br/>      city                        = string<br/>      state                       = optional(string, null)<br/>      country                     = string<br/>      vat_identification_code     = optional(string, null)<br/>      company_identification_code = optional(string, null)<br/>      whois_opt_in                = optional(bool, false)<br/>      email_alt                   = optional(string, null)<br/>      lang                        = optional(string, "en_US")<br/>      resale                      = optional(bool, false)<br/><br/>      extension_fr = optional(object({<br/>        mode = optional(string)<br/><br/>        individual_info = optional(object({<br/>          whois_opt_in = optional(bool)<br/>        }))<br/><br/>        association_info = optional(object({<br/>          publication_jo      = optional(string)<br/>          publication_jo_page = optional(number)<br/>        }))<br/><br/>        duns_info = optional(object({<br/>          duns_id  = optional(string)<br/>          local_id = optional(string)<br/>        }))<br/><br/>        trademark_info = optional(object({<br/>          trademark_inpi = optional(string)<br/>        }))<br/>      }))<br/><br/>      extension_eu = optional(object({<br/>        european_citizenship = optional(string)<br/>      }))<br/>    }))<br/>  })</pre> | `null` | no |
+| <a name="input_subdomain"></a> [subdomain](#input\_subdomain) | Subdomain (zone name) within `domain`, for example `api` or `staging`. An empty string (default) manages records directly on the root domain; a name creates a delegated zone. | `string` | `""` | no |
 
 ## Outputs
 
