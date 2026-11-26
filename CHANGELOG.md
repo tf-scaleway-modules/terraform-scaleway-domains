@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [3.0.1] - 2026-11-26
 - Rewrite input and output descriptions as single-line prose so they render on the Terraform Registry
-
 ## [3.0.0] - 2026-11-25
 - Require OpenTofu or Terraform 1.11.0 and validate with both in CI
 
@@ -15,9 +14,11 @@ Pin opentofu 1.13.10 and terraform 1.17.2 in mise.toml, add the
 validate:terraform job, align the examples on the root provider
 constraint (~> 2.89), and force the tofu binary in the pre-commit
 Terraform hooks.
+## [2.0.1] - 2026-11-25
 - Reject owner contact legal forms and .fr modes the provider does not accept
 
 Provider 2.93.0 validates legal_form (individual, corporate, association, other) and extension_fr.mode; the module now rejects other values at plan on every provider version, and the tests no longer use the invalid "company".
+## [2.0.0] - 2026-11-01
 - Key DNS records by map, enable registration from the registration object and replace the project lookup with project_id
 
 BREAKING: v2.0.0; provider ~> 2.89.
@@ -36,9 +37,11 @@ BREAKING: v2.0.0; provider ~> 2.89.
   association_info, duns_info and trademark_info.
 
 See "Upgrading from v1 to v2" in the README.
+## [1.3.0] - 2026-10-31
 - Add registration auto_renew and dnssec options and the DS record output
 
 Provider constraint unchanged (~> 2.86); tested with scaleway provider 2.89.0. registration_status and registration_expired_at are not added: the provider schema does not expose them.
+## [1.2.2] - 2026-10-28
 - Fix project resolution, registration validation and ignored contact IDs
 
 - Resolve the project to null instead of failing when nothing resolves it.
@@ -50,6 +53,7 @@ Provider constraint unchanged (~> 2.86); tested with scaleway provider 2.89.0. r
 No upgrade action needed.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+## [1.2.1] - 2026-10-28
 - Key the pre-commit cache on mise.toml and .pre-commit-config.yaml
 
 The cache was keyed on the branch, so a branch kept tools installed by the previous mise, which the new one no longer puts on PATH (tofu not found). Keying it on the files that define the toolchain, as in scaleway-compute and scaleway-storage, starts a fresh cache whenever the toolchain changes and shares it across branches and tags.
@@ -73,6 +77,7 @@ spec-validate and spec-setup tasks, and the validate:specs CI job runs
 openspec validate --all --strict. The module contract is unchanged.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+## [1.2.0] - 2026-10-14
 - chore(deps): upgrade scaleway provider to ~> 2.86
 
 - Bump the scaleway provider constraint to ~> 2.86 (module and examples).
@@ -80,6 +85,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   they are optional since provider 2.77, the "" fallback is not needed.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+## [1.0.0] - 2025-12-23
 - Requires `data` attribute for all DNS records
 
 Ensures all DNS records have a `data` attribute, which is now required as a default fallback IP address.
