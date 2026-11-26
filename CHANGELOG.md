@@ -2,6 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
+
 ## [3.0.1] - 2026-11-26
 - Rewrite input and output descriptions as single-line prose so they render on the Terraform Registry
 ## [3.0.0] - 2026-11-25
@@ -113,12 +114,11 @@ Improves functionality with dynamic DNS features: geo IP routing, weighted load 
 
 Adds comprehensive input validation and type safety.
 Includes complete and minimal examples for easier adoption.
-## [0.0.1] - 2025-04-28
-- Create DNS record in scaleway
 - Adds .gitignore and pre-commit configuration
 
 Adds a comprehensive .gitignore file to prevent committing sensitive data and build artifacts.
 
 Also introduces a pre-commit configuration to enforce code quality and consistency, including YAML checking, whitespace trimming, and OpenTofu formatting.
+## [0.0.1] - 2025-04-28
+- Create DNS record in scaleway
 - Initial commit
-
